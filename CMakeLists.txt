@@ -5,5 +5,6 @@ set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE INTERNAL "" FORCE)
 
 add_executable(dem-editor
         ${PROJECT_SOURCE_DIR}/src/main.cpp
-    )
-#target_link_libraries(dem-editor graphics-engine)
+)
+find_package(gaunlet REQUIRED)
+target_link_libraries(dem-editor PUBLIC gaunlet::gaunlet)
