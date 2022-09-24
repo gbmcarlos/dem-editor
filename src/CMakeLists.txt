@@ -5,6 +5,10 @@ set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE INTERNAL "" FORCE)
 
 add_executable(dem-editor
         dem-editor/main.cpp
+
+        # graphics
+        dem-editor/graphics/components/procedural-plane/ProceduralPlane.cpp
+        dem-editor/graphics/render-pipeline/TerrainRenderPipeline.cpp
 )
 
 # Libraries
@@ -25,5 +29,6 @@ target_precompile_headers(dem-editor
 # Compiler definitions
 target_compile_definitions(dem-editor
         PUBLIC
-        ASSETS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/dem-editor/assets"
+            WORKING_DIR="${CMAKE_CURRENT_SOURCE_DIR}/dem-editor"
+            ASSETS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/dem-editor/assets"
 )
