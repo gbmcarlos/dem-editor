@@ -1,5 +1,8 @@
 #pragma once
 
+#include "dem-editor/graphics/render-pipeline/TerrainRenderPipeline.h"
+#include "dem-editor/gui/EnttyComponentsPanel.h"
+
 #include "pch.h"
 
 namespace DemEditor {
@@ -15,6 +18,7 @@ namespace DemEditor {
             m_workspace = new gaunlet::Editor::Workspace();
 
             prepareLayout();
+            prepareTools();
             prepareScene();
 
         }
@@ -52,11 +56,11 @@ namespace DemEditor {
 
             // Push the GUI panels
             m_workspace->pushPanel("render-panel", new gaunlet::Prefab::GuiPanels::RenderPanelComponentsPanel, "Render Panel");
-            m_workspace->pushPanel("components", new gaunlet::Prefab::GuiPanels::EntityComponentsPanel, "Entity Components");
+            m_workspace->pushPanel("components", new EntityComponentsPanel, "Entity Components");
             m_workspace->pushPanel("tools", new gaunlet::Prefab::GuiPanels::ToolsManagerPanel, "Tools Manager");
 
             // Prepare the Render Panel
-            m_workspace->addRenderPipeline("main", gaunlet::Core::CreateRef<gaunlet::Prefab::BasicEditorRenderPipeline::BasicEditorRenderPipeline>());
+            m_workspace->addRenderPipeline("main", gaunlet::Core::CreateRef<TerrainRenderPipeline>());
             m_workspace->pushPanel(
                 "main",
                 new gaunlet::Editor::RenderPanel(),
@@ -67,6 +71,14 @@ namespace DemEditor {
                 "main",
                 "main"
             );
+
+        }
+
+        void prepareTools() {
+
+            m_workspace->addTool("fp-camera-controller", gaunlet::Core::CreateRef<gaunlet::Prefab::EditorTools::FirstPersonCameraController>("main", 300.0f, 0.5f));
+            m_workspace->addTool("transformer", gaunlet::Core::CreateRef<gaunlet::Prefab::EditorTools::TransformerTool>());
+            m_workspace->activateTool("fp-camera-controller");
 
         }
 
@@ -95,7 +107,7 @@ namespace DemEditor {
             gaunlet::Core::Ref<gaunlet::Graphics::TextureImage2D> heightmap = gaunlet::Core::CreateRef<gaunlet::Graphics::TextureImage2D>(ASSETS_PATH"/heightmap.png");
 
             auto plane = mainScene->createTaggedEntity<gaunlet::Editor::SceneEntityTag>("plane");
-            plane.addComponent<gaunlet::Prefab::Terrain::TerrainComponent>(
+            plane.addComponent<TerrainComponent>(
                 100000.0f, // Plane size
                 150.0f, 0.5f, // Quad subdivision
                 25.0f, // Triangle size
