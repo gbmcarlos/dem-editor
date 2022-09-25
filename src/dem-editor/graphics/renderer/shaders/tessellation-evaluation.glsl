@@ -30,7 +30,29 @@ layout (std140) uniform SceneProperties {
     DirectionalLight directionalLight;
 };
 
-uniform float u_maxHeight;
+struct FrustumPlane {
+    vec3 normal;
+    float distance;
+};
+
+struct CameraFrustum {
+    FrustumPlane nearPlane;
+    FrustumPlane farPlane;
+    FrustumPlane leftPlane;
+    FrustumPlane rightPlane;
+    FrustumPlane bottomPlane;
+    FrustumPlane topPlane;
+};
+
+layout (std140) uniform TerrainProperties {
+    CameraFrustum cameraFrustum;
+    float triangleSize;
+    float maxHeight;
+    vec2 stampOrigin;
+    float stampSize;
+    int entityId;
+    float terrainSize;
+};
 
 in vec2 tc_textureCoordinates[];
 in vec3 tc_normal[];
@@ -57,7 +79,7 @@ void main() {
     tc_vertexColor = getVertexColor();
 
     vec4 vertexPosition = interpolateVertexPosition();
-    float height = texture(heightmap, te_textureCoordinates).y * u_maxHeight;
+    float height = texture(heightmap, te_textureCoordinates).y * maxHeight;
     vertexPosition.y = height;
 
     gl_Position = projection * view * vertexPosition;

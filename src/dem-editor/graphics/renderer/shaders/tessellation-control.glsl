@@ -35,7 +35,7 @@ struct FrustumPlane {
     float distance;
 };
 
-layout (std140) uniform CameraFrustum {
+struct CameraFrustum {
     FrustumPlane nearPlane;
     FrustumPlane farPlane;
     FrustumPlane leftPlane;
@@ -44,8 +44,15 @@ layout (std140) uniform CameraFrustum {
     FrustumPlane topPlane;
 };
 
-uniform float u_maxHeight;
-uniform float u_triangleSize;
+layout (std140) uniform TerrainProperties {
+    CameraFrustum cameraFrustum;
+    float triangleSize;
+    float maxHeight;
+    vec2 stampOrigin;
+    float stampSize;
+    int entityId;
+    float terrainSize;
+};
 
 in vec2 v_textureCoordinates[];
 in vec3 v_normal[];
@@ -110,13 +117,13 @@ void main() {
             EntityPropertySet entityProperties = entityPropertySets[entityIndex];
 
             // Left edge, from 0 to 3, so pointing up
-            float tessellationLevelLeft = getTessellationLevel(LEFT_EDGE, entityProperties.position, entityProperties.leftSizeFactor, u_triangleSize);
+            float tessellationLevelLeft = getTessellationLevel(LEFT_EDGE, entityProperties.position, entityProperties.leftSizeFactor, triangleSize);
             // Bottom edge, from 0 to 1, so pointing right
-            float tessellationLevelBottom = getTessellationLevel(BOTTOM_EDGE, entityProperties.position, entityProperties.bottomSizeFactor, u_triangleSize);
+            float tessellationLevelBottom = getTessellationLevel(BOTTOM_EDGE, entityProperties.position, entityProperties.bottomSizeFactor, triangleSize);
             // Right edge, from 1 to 2, so pointing up
-            float tessellationLevelRight = getTessellationLevel(RIGHT_EDGE, entityProperties.position, entityProperties.rightSizeFactor, u_triangleSize);
+            float tessellationLevelRight = getTessellationLevel(RIGHT_EDGE, entityProperties.position, entityProperties.rightSizeFactor, triangleSize);
             // Top edge, from 3 to 2, so pointing right
-            float tessellationLevelTop = getTessellationLevel(TOP_EDGE, entityProperties.position, entityProperties.topSizeFactor, u_triangleSize);
+            float tessellationLevelTop = getTessellationLevel(TOP_EDGE, entityProperties.position, entityProperties.topSizeFactor, triangleSize);
 
             float tessellationLevelVertical = max(tessellationLevelBottom, tessellationLevelTop);
             float tessellationLevelHorizontal = max(tessellationLevelLeft, tessellationLevelRight);
@@ -216,7 +223,7 @@ vec4 getExtendedEdgeVertex(vec4 fixedVertex, vec4 vertexToExtend, vec2 fixedText
 
     // Simulate the height of the extended vertex
     vec2 extendedTextureCoordinates = textureCoordinatesToExtend + (textureCoordinatesToExtend - fixedTextureCoordinates);
-    float height = texture(heightmap, extendedTextureCoordinates).y * u_maxHeight;
+    float height = texture(heightmap, extendedTextureCoordinates).y * maxHeight;
     extendedVertex.y = height;
 
     return extendedVertex;
@@ -267,27 +274,27 @@ vec2 getVertexIndices(uint edgeIndex) {
 
 bool withinFrustum(vec4 corner0, vec4 corner1, vec4 corner2, vec4 corner3) {
 
-    if (!quadOver(nearPlane, corner0, corner1, corner2, corner3)) {
+    if (!quadOver(cameraFrustum.nearPlane, corner0, corner1, corner2, corner3)) {
         return false;
     }
 
-    if (!quadOver(farPlane, corner0, corner1, corner2, corner3)) {
+    if (!quadOver(cameraFrustum.farPlane, corner0, corner1, corner2, corner3)) {
         return false;
     }
 
-    if (!quadOver(leftPlane, corner0, corner1, corner2, corner3)) {
+    if (!quadOver(cameraFrustum.leftPlane, corner0, corner1, corner2, corner3)) {
         return false;
     }
 
-    if (!quadOver(rightPlane, corner0, corner1, corner2, corner3)) {
+    if (!quadOver(cameraFrustum.rightPlane, corner0, corner1, corner2, corner3)) {
         return false;
     }
 
-    if (!quadOver(bottomPlane, corner0, corner1, corner2, corner3)) {
+    if (!quadOver(cameraFrustum.bottomPlane, corner0, corner1, corner2, corner3)) {
         return false;
     }
 
-    if (!quadOver(topPlane, corner0, corner1, corner2, corner3)) {
+    if (!quadOver(cameraFrustum.topPlane, corner0, corner1, corner2, corner3)) {
         return false;
     }
 

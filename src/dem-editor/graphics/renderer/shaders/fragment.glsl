@@ -28,7 +28,29 @@ layout (std140) uniform SceneProperties {
     DirectionalLight directionalLight;
 };
 
-uniform int u_entityId;
+struct FrustumPlane {
+    vec3 normal;
+    float distance;
+};
+
+struct CameraFrustum {
+    FrustumPlane nearPlane;
+    FrustumPlane farPlane;
+    FrustumPlane leftPlane;
+    FrustumPlane rightPlane;
+    FrustumPlane bottomPlane;
+    FrustumPlane topPlane;
+};
+
+layout (std140) uniform TerrainProperties {
+    CameraFrustum cameraFrustum;
+    float triangleSize;
+    float maxHeight;
+    vec2 stampOrigin;
+    float stampSize;
+    int entityId;
+    float terrainSize;
+};
 
 // Inputs
 in vec2 te_textureCoordinates;
@@ -43,6 +65,7 @@ layout (location = 2) out vec3 o_terrainPosition;
 
 // Textures
 uniform sampler2D heightmap;
+uniform sampler2D stamp;
 
 vec4 getDirectionalLightColor(
     vec3 color, vec3 direction,
@@ -54,9 +77,29 @@ void main() {
 
     vec4 textureColor = texture(heightmap, te_textureCoordinates);
     //vec4 directionalLightColor = getDirectionalLightColor(directionalLight.color, directionalLight.direction, directionalLight.ambientIntensity, directionalLight.diffuseIntensity, te_normal);
+    float halfSize = stampSize/2;
 
     o_color = textureColor;
-    o_entityId = u_entityId;
+    float stampLeft = (stampOrigin.x - halfSize);
+    float stampRight = (stampOrigin.x + halfSize);
+    float stampBottom = (stampOrigin.y - halfSize);
+    float stampTop = (stampOrigin.y + halfSize);
+
+    if (stampSize > 0.0f &&
+        te_textureCoordinates.x > stampLeft
+        && te_textureCoordinates.x < stampRight
+        && te_textureCoordinates.y > stampBottom
+        && te_textureCoordinates.y < stampTop
+    ) {
+        vec2 stampTextureCoordinates = vec2(
+            (te_textureCoordinates.x - stampLeft) / stampSize,
+            (te_textureCoordinates.y - stampBottom) / stampSize
+        );
+        vec4 stampColor = texture(stamp, stampTextureCoordinates);
+        o_color += stampColor;
+    }
+
+    o_entityId = entityId;
     o_terrainPosition = vec3(te_textureCoordinates.x, textureColor.y, te_textureCoordinates.y);
 
 }

@@ -10,6 +10,9 @@ namespace DemEditor {
 
     public:
 
+        TerrainSelectionTool()
+            : m_stamp(gaunlet::Core::CreateRef<gaunlet::Graphics::TextureImage2D>(ASSETS_PATH"/texture-1.jpeg")) {}
+
         const char* getName() override {
             return "Terrain Location";
         }
@@ -18,6 +21,7 @@ namespace DemEditor {
 
             gaunlet::Core::EventDispatcher dispatcher(event);
             dispatcher.dispatch<gaunlet::Core::MouseButtonPress>(GL_BIND_CALLBACK_FN(TerrainSelectionTool::onMousePressEvent));
+            dispatcher.dispatch<gaunlet::Core::CursorMoveEvent>(GL_BIND_CALLBACK_FN(TerrainSelectionTool::onCursorMoveEvent));
             dispatcher.dispatch<gaunlet::Core::MouseButtonRelease>(GL_BIND_CALLBACK_FN(TerrainSelectionTool::onMouseReleaseEvent));
 
             return true;
@@ -26,7 +30,7 @@ namespace DemEditor {
 
         void onGuiRender() override {
 
-            if (m_clicking) {
+            if (m_terrain) {
                 ImGui::Text("Terrain Location: (%f %f %f)", m_terrainLocation.x, m_terrainLocation.y, m_terrainLocation.z);
             }
 
@@ -34,34 +38,67 @@ namespace DemEditor {
 
     protected:
 
-        bool m_clicking = false;
+        gaunlet::Editor::RenderPanel* m_renderPanel = nullptr;
+        gaunlet::Scene::Entity m_terrain;
         glm::vec4 m_terrainLocation;
+        gaunlet::Core::Ref<gaunlet::Graphics::TextureImage2D> m_stamp;
+        float m_stampUVSize = 0.05;
 
         bool onMousePressEvent(gaunlet::Core::MouseButtonPress& event) {
 
-            auto renderPanel = getWorkspace()->getHoveredRenderPanel();
-            if (!renderPanel) {
+            m_renderPanel = getWorkspace()->getHoveredRenderPanel();
+            if (!m_renderPanel) {
                 return true;
             }
 
-            auto terrainEntity = mousePickTaggedEntity<TerrainComponent>(renderPanel, 1);
+            m_terrain = mousePickTaggedEntity<TerrainComponent>(m_renderPanel, 1);
 
-            if (!terrainEntity) {
+            if (!m_terrain) {
                 return true;
             }
 
-            m_clicking = true;
+            m_terrainLocation = mousePickTerrainLocation(m_renderPanel, m_terrain.getComponent<TerrainComponent>());
 
-            auto terrainLocation = mousePickTerrainLocation(renderPanel, terrainEntity.getComponent<TerrainComponent>());
+            if (!m_terrain.hasComponent<StampComponent>()) {
+                m_terrain.addComponent<StampComponent>(
+                    glm::vec2(m_terrainLocation.x, m_terrainLocation.z),
+                    m_stampUVSize,
+                    m_stamp
+                );
+            }
 
-            m_terrainLocation = terrainLocation;
+            return true;
+
+        }
+
+        bool onCursorMoveEvent(gaunlet::Core::CursorMoveEvent& event) {
+
+            if (m_terrain && m_terrain.hasComponent<StampComponent>()) {
+
+                m_terrainLocation = mousePickTerrainLocation(m_renderPanel, m_terrain.getComponent<TerrainComponent>());
+                auto& stamp = m_terrain.getComponent<StampComponent>();
+                stamp.m_uvOrigin = {m_terrainLocation.x, m_terrainLocation.z};
+
+            }
 
             return true;
 
         }
 
         bool onMouseReleaseEvent(gaunlet::Core::MouseButtonRelease& event) {
-            m_clicking = false;
+
+            if (m_terrain) {
+
+                if (m_terrain.hasComponent<StampComponent>()) {
+                    m_terrain.removeComponent<StampComponent>();
+                }
+
+                m_terrain = {};
+
+            }
+
+            m_renderPanel = nullptr;
+
             return true;
         }
 
@@ -70,22 +107,11 @@ namespace DemEditor {
             unsigned int pixelPositionX = renderPanel->getMousePositionX() * gaunlet::Core::Window::getCurrentInstance()->getDPI();
             unsigned int pixelPositionY = renderPanel->getMousePositionYInverted() * gaunlet::Core::Window::getCurrentInstance()->getDPI();
 
-            auto terrainLocation = getWorkspace()->getRenderPipeline(renderPanel->getRenderPipelineId())->getFramebuffer()->readPixel<glm::vec4>(
+            return getWorkspace()->getRenderPipeline(renderPanel->getRenderPipelineId())->getFramebuffer()->readPixel<glm::vec4>(
                 3,
                 pixelPositionX,
                 pixelPositionY
             );
-
-            float halfSize = terrain.m_size/2;
-
-            // XZ plane position from uv coordinates
-            float worldX = (terrainLocation.x * terrain.m_size) - halfSize;
-            float worldZ = -((terrainLocation.z * terrain.m_size) - halfSize);
-
-            // Y position based from max height
-            float worldY = terrainLocation.y * terrain.m_maxHeight;
-
-            return {worldX, worldY, worldZ, 0.0f};
 
         }
 

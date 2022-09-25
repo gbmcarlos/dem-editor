@@ -4,15 +4,16 @@
 #include "gaunlet/prefab/object-renderers/model-renderer/ModelRenderer.h"
 #include "gaunlet/graphics/render-pass/SimpleRenderPass.h"
 #include "dem-editor/graphics/components/TerrainComponents.h"
+#include "dem-editor/graphics/components/StampComponent.h"
 #include "gaunlet/scene/camera/Camera.h"
 
 #include "gaunlet/pch.h"
 
 namespace DemEditor {
 
-    struct PlaneQuadEntityProperties {
+    struct QuadProperties {
 
-        PlaneQuadEntityProperties() = default;
+        QuadProperties() = default;
 
         unsigned int m_quadPosition;
         float m_leftSizeFactor;
@@ -40,25 +41,35 @@ namespace DemEditor {
 
     };
 
+    struct TerrainProperties {
+        CameraFrustum m_cameraFrustum;
+        float m_triangleSize;
+        float m_maxHeight;
+        glm::vec2 m_stampOrigin = {0, 0};
+        float m_stampSize = 0;
+        int m_entityId;
+        float m_terrainSize;
+    };
+
     class TerrainRenderer {
 
     public:
 
-        TerrainRenderer(unsigned int propertySetsUniformBufferBindingPoint, unsigned int cameraFrustumUniformBufferBindingPoint)
+        TerrainRenderer(unsigned int quadPropertySetsUniformBufferBindingPoint, unsigned int terrainPropertiesUniformBufferBindingPoint)
             : m_renderer({100000, 600000, 10, 1000}) {
 
             // Create a uniform buffer that will contain the properties of every object, and will be linked to the shader
-            m_propertySetsUniformBuffer = gaunlet::Core::CreateRef<gaunlet::Graphics::UniformBuffer>(
+            m_quadPropertySetsUniformBuffer = gaunlet::Core::CreateRef<gaunlet::Graphics::UniformBuffer>(
                 "EntityPropertySets",
-                propertySetsUniformBufferBindingPoint,
-                sizeof (PlaneQuadEntityProperties) * m_renderer.getBatchParameters().m_maxPropertySets
+                quadPropertySetsUniformBufferBindingPoint,
+                sizeof (QuadProperties) * m_renderer.getBatchParameters().m_maxPropertySets
             );
 
             // Create a uniform buffer that will contain the information about the camera's frustum
-            m_frustumUniformBuffer = gaunlet::Core::CreateRef<gaunlet::Graphics::UniformBuffer>(
-                "CameraFrustum",
-                cameraFrustumUniformBufferBindingPoint,
-                sizeof (CameraFrustum)
+            m_terrainPropertiesUniformBuffer = gaunlet::Core::CreateRef<gaunlet::Graphics::UniformBuffer>(
+                "TerrainProperties",
+                terrainPropertiesUniformBufferBindingPoint,
+                sizeof (TerrainProperties)
             );
 
             loadShaders();
@@ -66,45 +77,23 @@ namespace DemEditor {
 
         void render(gaunlet::Scene::Entity entity, const gaunlet::Core::Ref<gaunlet::Graphics::Shader>& shader) {
 
-            auto& planeComponent = entity.getComponent<TerrainComponent>();
+            auto terrainProperties = getTerrainProperties(entity);
 
-            // Global variables for the whole plane
-            m_shaderLibrary.get("plane-faces")
-                ->setUniform1f("u_triangleSize", planeComponent.m_triangleSize)
-                ->setUniform1f("u_maxHeight", planeComponent.m_maxHeight)
-                ->setUniform1i("u_entityId", entity.getId());
+            auto& terrainComponent = entity.getComponent<TerrainComponent>();
 
-            // Global frustum data
-            gaunlet::Scene::Frustum originalFrustum = planeComponent.m_camera->getFrustum();
-            CameraFrustum cameraFrustum{
-                {originalFrustum.m_nearPlane.m_normal, originalFrustum.m_nearPlane.m_distance},
-                {originalFrustum.m_farPlane.m_normal, originalFrustum.m_farPlane.m_distance},
-                {originalFrustum.m_leftPlane.m_normal, originalFrustum.m_leftPlane.m_distance},
-                {originalFrustum.m_rightPlane.m_normal, originalFrustum.m_rightPlane.m_distance},
-                {originalFrustum.m_bottomPlane.m_normal, originalFrustum.m_bottomPlane.m_distance},
-                {originalFrustum.m_topPlane.m_normal, originalFrustum.m_topPlane.m_distance},
-            };
-
-            m_frustumUniformBuffer->setData(
-                (const void*) &cameraFrustum,
-                sizeof(CameraFrustum)
+            m_terrainPropertiesUniformBuffer->setData(
+                (const void*) &terrainProperties,
+                sizeof(TerrainProperties)
             );
 
-            for (auto& quad : planeComponent.getContent()) {
+            for (auto& quad : terrainComponent.getContent()) {
 
-                // Per-quad data
-                PlaneQuadEntityProperties planeQuadEntityProperties{
-                    quad.m_position,
-                    quad.m_leftSizeRatio,
-                    quad.m_bottomSizeRatio,
-                    quad.m_rightSizeRatio,
-                    quad.m_topSizeRatio
-                };
+                auto planeQuadEntityProperties = getQuadProperties(quad);
 
                 bool batched = m_renderer.submitIndexedTriangles(
                     quad.m_vertices,
                     quad.m_indices,
-                    planeComponent.m_heightmap,
+                    terrainComponent.m_heightmap,
                     planeQuadEntityProperties
                 );
 
@@ -113,7 +102,7 @@ namespace DemEditor {
                     m_renderer.submitIndexedTriangles(
                         quad.m_vertices,
                         quad.m_indices,
-                        planeComponent.m_heightmap,
+                        terrainComponent.m_heightmap,
                         planeQuadEntityProperties
                     );
                 }
@@ -130,23 +119,74 @@ namespace DemEditor {
 
     protected:
 
+        TerrainProperties getTerrainProperties(gaunlet::Scene::Entity entity) {
+
+            auto& terrainComponent = entity.getComponent<TerrainComponent>();
+
+            gaunlet::Scene::Frustum originalFrustum = terrainComponent.m_camera->getFrustum();
+            CameraFrustum cameraFrustum{
+                {originalFrustum.m_nearPlane.m_normal, originalFrustum.m_nearPlane.m_distance},
+                {originalFrustum.m_farPlane.m_normal, originalFrustum.m_farPlane.m_distance},
+                {originalFrustum.m_leftPlane.m_normal, originalFrustum.m_leftPlane.m_distance},
+                {originalFrustum.m_rightPlane.m_normal, originalFrustum.m_rightPlane.m_distance},
+                {originalFrustum.m_bottomPlane.m_normal, originalFrustum.m_bottomPlane.m_distance},
+                {originalFrustum.m_topPlane.m_normal, originalFrustum.m_topPlane.m_distance},
+            };
+
+            TerrainProperties terrainProperties{
+                cameraFrustum,
+                terrainComponent.m_triangleSize,
+                terrainComponent.m_maxHeight
+            };
+
+            if (entity.hasComponent<StampComponent>()) {
+
+                auto& stampComponent = entity.getComponent<StampComponent>();
+
+                terrainProperties.m_stampOrigin = stampComponent.m_uvOrigin;
+                terrainProperties.m_stampSize = stampComponent.m_uvSize;
+
+                stampComponent.m_stampTexture->activate(2);
+
+            }
+
+            terrainProperties.m_entityId = entity.getId();
+            terrainProperties.m_terrainSize = terrainComponent.m_size;
+
+            return terrainProperties;
+
+
+        }
+
+        QuadProperties getQuadProperties(PlaneQuad& quad) {
+
+            return {
+                quad.m_position,
+                quad.m_leftSizeRatio,
+                quad.m_bottomSizeRatio,
+                quad.m_rightSizeRatio,
+                quad.m_topSizeRatio
+            };
+
+        }
+
         void renderObjects(const gaunlet::Core::Ref<gaunlet::Graphics::Shader>& shader) {
 
             auto& entityPropertySets = m_renderer.getPropertySets();
 
             // Submit the entity properties to the uniform buffer
-            m_propertySetsUniformBuffer->setData(
+            m_quadPropertySetsUniformBuffer->setData(
                 (const void*) entityPropertySets.data(),
-                sizeof(PlaneQuadEntityProperties) * entityPropertySets.size()
+                sizeof(QuadProperties) * entityPropertySets.size()
             );
 
             m_renderer.flush(shader, gaunlet::Graphics::RenderMode::Quad);
 
         }
 
-        gaunlet::Graphics::BatchedRenderPass<PlaneQuadEntityProperties> m_renderer;
-        gaunlet::Core::Ref<gaunlet::Graphics::UniformBuffer> m_propertySetsUniformBuffer = nullptr;
-        gaunlet::Core::Ref<gaunlet::Graphics::UniformBuffer> m_frustumUniformBuffer = nullptr;
+        gaunlet::Graphics::BatchedRenderPass<QuadProperties> m_renderer;
+        gaunlet::Core::Ref<gaunlet::Graphics::UniformBuffer> m_quadPropertySetsUniformBuffer = nullptr;
+        gaunlet::Core::Ref<gaunlet::Graphics::UniformBuffer> m_terrainPropertiesUniformBuffer = nullptr;
 
     private:
 
@@ -161,11 +201,12 @@ namespace DemEditor {
 
             auto facesShader = m_shaderLibrary.load("plane-faces", facesSources);
 
-            // Set a single "heighmap" texture (slot 0 is for the whiteTexture)
+            // Set "heightmap" and "stamp" textures (slot 0 is for the whiteTexture)
             facesShader->setUniform1i("heightmap", 1);
+            facesShader->setUniform1i("stamp", 2);
 
-            facesShader->linkUniformBuffer(m_propertySetsUniformBuffer);
-            facesShader->linkUniformBuffer(m_frustumUniformBuffer);
+            facesShader->linkUniformBuffer(m_quadPropertySetsUniformBuffer);
+            facesShader->linkUniformBuffer(m_terrainPropertiesUniformBuffer);
 
         }
 

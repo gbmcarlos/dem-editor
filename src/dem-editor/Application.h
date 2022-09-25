@@ -93,7 +93,8 @@ namespace DemEditor {
             // Scene components
             auto mainCamera = gaunlet::Core::CreateRef<gaunlet::Scene::PerspectiveCamera>(45.0f, (float) viewportWidth / (float) viewportHeight, 1.0f, -100000.0f);
             m_workspace->addCamera("main", mainCamera);
-            mainCamera->setPosition({0.0f, 800.0f, 0.0f});
+            mainCamera->setPosition({0.0f, 1000.0f, 200.0f});
+            mainCamera->lookAt({0, 0, 0});
 
             m_workspace->addScene("main", gaunlet::Core::CreateRef<gaunlet::Scene::Scene>());
             m_workspace->addDirectionalLight("main", gaunlet::Core::CreateRef<gaunlet::Scene::DirectionalLightComponent>(
@@ -107,6 +108,7 @@ namespace DemEditor {
             auto& mainScene = m_workspace->getScene("main");
 
             gaunlet::Core::Ref<gaunlet::Graphics::TextureImage2D> heightmap = gaunlet::Core::CreateRef<gaunlet::Graphics::TextureImage2D>(ASSETS_PATH"/heightmap.png");
+            gaunlet::Core::Ref<gaunlet::Graphics::TextureImage2D> stamp = gaunlet::Core::CreateRef<gaunlet::Graphics::TextureImage2D>(ASSETS_PATH"/texture-1.jpeg");
 
             auto plane = mainScene->createTaggedEntity<gaunlet::Editor::SceneEntityTag>("plane");
             plane.addComponent<TerrainComponent>(

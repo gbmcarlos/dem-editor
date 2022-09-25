@@ -28,7 +28,29 @@ layout (std140) uniform SceneProperties {
     DirectionalLight directionalLight;
 };
 
-uniform float u_maxHeight;
+struct FrustumPlane {
+    vec3 normal;
+    float distance;
+};
+
+struct CameraFrustum {
+    FrustumPlane nearPlane;
+    FrustumPlane farPlane;
+    FrustumPlane leftPlane;
+    FrustumPlane rightPlane;
+    FrustumPlane bottomPlane;
+    FrustumPlane topPlane;
+};
+
+layout (std140) uniform TerrainProperties {
+    CameraFrustum cameraFrustum;
+    float triangleSize;
+    float maxHeight;
+    vec2 stampOrigin;
+    float stampSize;
+    int entityId;
+    float terrainSize;
+};
 
 // Vertex attributes
 layout (location = 0) in vec4 a_position;
@@ -51,7 +73,7 @@ void main() {
     v_entityIndex = a_entityIndex;
 
     vec4 vertexPosition = a_position;
-    float height = texture(heightmap, v_textureCoordinates).y * u_maxHeight;
+    float height = texture(heightmap, v_textureCoordinates).y * maxHeight;
     vertexPosition.y = height;
 
     gl_Position = vertexPosition;
