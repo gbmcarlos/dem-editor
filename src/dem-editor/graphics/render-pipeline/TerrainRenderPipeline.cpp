@@ -15,9 +15,9 @@ namespace DemEditor {
 
         m_framebuffer = gaunlet::Core::CreateRef<gaunlet::Graphics::Framebuffer>(std::initializer_list<gaunlet::Graphics::FramebufferAttachmentSpec>{
             {gaunlet::Core::FramebufferAttachmentType::Color, gaunlet::Graphics::FramebufferDataFormat::RGBA, glm::vec4(0.1f, 0.1f, 0.1f, 1)},
-//            {gaunlet::Core::FramebufferAttachmentType::Color, gaunlet::Graphics::FramebufferDataFormat::RGB, glm::vec3(0.0f, 0.0f, 0.0f)},
             {gaunlet::Core::FramebufferAttachmentType::Color, gaunlet::Graphics::FramebufferDataFormat::Integer, -1},
             {gaunlet::Core::FramebufferAttachmentType::Color, gaunlet::Graphics::FramebufferDataFormat::Integer, -1},
+            {gaunlet::Core::FramebufferAttachmentType::Color, gaunlet::Graphics::FramebufferDataFormat::RGBAFloat, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f)},
             {gaunlet::Core::FramebufferAttachmentType::DepthStencil, gaunlet::Graphics::FramebufferDataFormat::DepthStencil}
         }, window->getViewportWidth() * window->getDPI(), window->getViewportHeight() * window->getDPI());
 
@@ -29,7 +29,7 @@ namespace DemEditor {
         m_framebuffer->setDrawBuffers({
             SceneFramebufferAttachmentIndex,
             SceneEntityIdFramebufferAttachmentIndex,
-//            TerrainPositionFramebufferAttachmentIndex,
+            TerrainPositionFramebufferAttachmentIndex,
             UIEntityIdFramebufferAttachmentIndex
         });
 
@@ -61,10 +61,6 @@ namespace DemEditor {
 
     const gaunlet::Core::Ref<gaunlet::Graphics::Texture> &TerrainRenderPipeline::getRenderedTexture() {
         return m_framebuffer->getColorAttachment(SceneFramebufferAttachmentIndex);
-    }
-
-    int TerrainRenderPipeline::readFramebuffer(unsigned int attachmentIndex, unsigned int x, unsigned int y) {
-        return m_framebuffer->readPixel(attachmentIndex, x, y);
     }
 
     unsigned int TerrainRenderPipeline::getUniformBufferCount() {

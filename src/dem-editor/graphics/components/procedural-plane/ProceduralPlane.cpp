@@ -105,8 +105,8 @@ namespace DemEditor {
 
         float patchUVLeft = planeLeft == m_leftEdge ? 0 : ((m_leftEdge - planeLeft) / m_context.m_planeSize); // If the patch is on the left edge of the plane, avoid dividing by 0, U is 0
         float patchUVRight = (m_rightEdge - planeLeft) / m_context.m_planeSize;
-        float patchUVBottom = planeBottom == m_bottomEdge ? 0 : ((m_bottomEdge - planeBottom) / m_context.m_planeSize); // Same as with planeLeft, avoid dividing by 0, V is 0
-        float patchUVTop = (m_topEdge - planeBottom) / m_context.m_planeSize;
+        float patchUVBottom = planeBottom == m_bottomEdge ? 0 : -((m_bottomEdge - planeBottom) / m_context.m_planeSize); // Same as with planeLeft, avoid dividing by 0, V is 0
+        float patchUVTop = -(m_topEdge - planeBottom) / m_context.m_planeSize;
 
         m_context.m_quads.push_back({
             {

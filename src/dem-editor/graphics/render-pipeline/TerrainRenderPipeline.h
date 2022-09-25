@@ -18,7 +18,7 @@ namespace DemEditor {
         void run(const gaunlet::Core::Ref<gaunlet::Scene::Scene>& scene, const gaunlet::Core::Ref<gaunlet::Scene::Camera>& camera, const gaunlet::Core::Ref<gaunlet::Scene::DirectionalLightComponent>& directionalLight, const gaunlet::Core::Ref<gaunlet::Scene::SkyboxComponent>& skybox) override;
         void resize(unsigned int width, unsigned int height) override;
         const gaunlet::Core::Ref<gaunlet::Graphics::Texture>& getRenderedTexture() override;
-        int readFramebuffer(unsigned int attachmentIndex, unsigned int x, unsigned int y) override;
+        inline const gaunlet::Core::Ref<gaunlet::Graphics::Framebuffer> & getFramebuffer() override {return m_framebuffer; }
         static unsigned int getUniformBufferCount();
 
     protected:

@@ -1,7 +1,8 @@
 #pragma once
 
 #include "dem-editor/graphics/render-pipeline/TerrainRenderPipeline.h"
-#include "dem-editor/gui/EnttyComponentsPanel.h"
+#include "dem-editor/gui/EntityComponentsPanel.h"
+#include "dem-editor/tools/TerrainSelectionTool.h"
 
 #include "pch.h"
 
@@ -78,7 +79,8 @@ namespace DemEditor {
 
             m_workspace->addTool("fp-camera-controller", gaunlet::Core::CreateRef<gaunlet::Prefab::EditorTools::FirstPersonCameraController>("main", 300.0f, 0.5f));
             m_workspace->addTool("transformer", gaunlet::Core::CreateRef<gaunlet::Prefab::EditorTools::TransformerTool>());
-            m_workspace->activateTool("fp-camera-controller");
+            m_workspace->addTool("terrain-picker", gaunlet::Core::CreateRef<TerrainSelectionTool>());
+            m_workspace->activateTool("terrain-picker");
 
         }
 
@@ -91,7 +93,7 @@ namespace DemEditor {
             // Scene components
             auto mainCamera = gaunlet::Core::CreateRef<gaunlet::Scene::PerspectiveCamera>(45.0f, (float) viewportWidth / (float) viewportHeight, 1.0f, -100000.0f);
             m_workspace->addCamera("main", mainCamera);
-            mainCamera->setPosition({1.0f, 800.0f, 1.0f});
+            mainCamera->setPosition({0.0f, 800.0f, 0.0f});
 
             m_workspace->addScene("main", gaunlet::Core::CreateRef<gaunlet::Scene::Scene>());
             m_workspace->addDirectionalLight("main", gaunlet::Core::CreateRef<gaunlet::Scene::DirectionalLightComponent>(
@@ -108,10 +110,10 @@ namespace DemEditor {
 
             auto plane = mainScene->createTaggedEntity<gaunlet::Editor::SceneEntityTag>("plane");
             plane.addComponent<TerrainComponent>(
-                100000.0f, // Plane size
+                1000.0f, // Plane size
                 150.0f, 0.5f, // Quad subdivision
                 25.0f, // Triangle size
-                1000.0f, // Max height
+                100.0f, // Max height
                 mainCamera,
                 heightmap
             );

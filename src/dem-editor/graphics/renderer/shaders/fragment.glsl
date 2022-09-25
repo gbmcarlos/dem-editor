@@ -39,7 +39,7 @@ flat in uint te_entityIndex;
 // Outputs
 layout (location = 0) out vec4 o_color;
 layout (location = 1) out int o_entityId;
-//layout (location = 2) out vec3 o_terrainPosition;
+layout (location = 2) out vec3 o_terrainPosition;
 
 // Textures
 uniform sampler2D heightmap;
@@ -56,10 +56,8 @@ void main() {
     //vec4 directionalLightColor = getDirectionalLightColor(directionalLight.color, directionalLight.direction, directionalLight.ambientIntensity, directionalLight.diffuseIntensity, te_normal);
 
     o_color = textureColor;
-
-//    o_terrainPosition = vec3(te_textureCoordinates, textureColor.y);
-
     o_entityId = u_entityId;
+    o_terrainPosition = vec3(te_textureCoordinates.x, textureColor.y, te_textureCoordinates.y);
 
 }
 
