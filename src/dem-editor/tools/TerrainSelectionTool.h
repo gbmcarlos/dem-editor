@@ -3,6 +3,7 @@
 #include "gaunlet/prefab/editor-tools/EntitySelectionTool.h"
 #include "dem-editor/graphics/components/TerrainComponents.h"
 #include "gaunlet/core/event/events/MouseEvent.h"
+#include "dem-editor/graphics/render-pipeline/extensions/TerrainLocationExtension.h"
 
 namespace DemEditor {
 
@@ -51,7 +52,11 @@ namespace DemEditor {
                 return true;
             }
 
-            m_terrain = mousePickTaggedEntity<TerrainComponent>(m_renderPanel, 1);
+            if (!m_renderPanel->getRenderPipeline()->hasExtension<TerrainLocationExtension>()) {
+                return true;
+            }
+
+            m_terrain = mousePickTaggedEntity<TerrainComponent>(m_renderPanel, gaunlet::Prefab::RenderPipelineExtensions::EntitySelectionExtension::EntityLayer::SceneLayer);
 
             if (!m_terrain) {
                 return true;
@@ -107,11 +112,9 @@ namespace DemEditor {
             unsigned int pixelPositionX = renderPanel->getMousePositionX() * gaunlet::Core::Window::getCurrentInstance()->getDPI();
             unsigned int pixelPositionY = renderPanel->getMousePositionYInverted() * gaunlet::Core::Window::getCurrentInstance()->getDPI();
 
-            return getWorkspace()->getRenderPipeline(renderPanel->getRenderPipelineId())->getFramebuffer()->readPixel<glm::vec4>(
-                3,
-                pixelPositionX,
-                pixelPositionY
-            );
+            return renderPanel->getRenderPipeline()
+                ->getExtension<TerrainLocationExtension>()
+                ->mousePickTerrainLocation(pixelPositionX, pixelPositionY);
 
         }
 

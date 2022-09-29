@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gaunlet/editor/workspace/FramebufferRenderPipeline.h"
+#include "gaunlet/editor/render-pipeline/RenderPipeline.h"
 #include "gaunlet/scene/entity/Entity.h"
 #include "gaunlet/scene/camera/Camera.h"
 #include "gaunlet/scene/components/BasicComponents.h"
@@ -10,15 +10,14 @@
 
 namespace DemEditor {
 
-    class TerrainRenderPipeline : public gaunlet::Editor::FramebufferRenderPipeline {
+    class TerrainRenderPipeline : public gaunlet::Editor::RenderPipeline {
 
     public:
 
-        explicit TerrainRenderPipeline(unsigned int uniformBufferBindingPointOffset = 0);
-        void run(const gaunlet::Core::Ref<gaunlet::Scene::Scene>& scene, const gaunlet::Core::Ref<gaunlet::Scene::Camera>& camera, const gaunlet::Core::Ref<gaunlet::Scene::DirectionalLightComponent>& directionalLight, const gaunlet::Core::Ref<gaunlet::Scene::SkyboxComponent>& skybox) override;
+        explicit TerrainRenderPipeline(gaunlet::Core::Ref<gaunlet::Scene::DirectionalLightComponent> directionalLight, gaunlet::Core::Ref<gaunlet::Scene::SkyboxComponent> skybox, unsigned int uniformBufferBindingPointOffset = 0);
+        void run(const gaunlet::Core::Ref<gaunlet::Scene::Scene>& scene, const gaunlet::Core::Ref<gaunlet::Scene::Camera>& camera) override;
         void resize(unsigned int width, unsigned int height) override;
-        const gaunlet::Core::Ref<gaunlet::Graphics::Texture>& getRenderedTexture() override;
-        inline const gaunlet::Core::Ref<gaunlet::Graphics::Framebuffer> & getFramebuffer() override {return m_framebuffer; }
+        const gaunlet::Core::Ref<gaunlet::Graphics::Texture>& getRenderTarget() override;
         static unsigned int getUniformBufferCount();
 
     protected:
@@ -46,6 +45,8 @@ namespace DemEditor {
     private:
 
         void prepareShaders(unsigned int uniformBufferBindingPointOffset);
+        gaunlet::Core::Ref<gaunlet::Scene::DirectionalLightComponent> m_directionalLight = nullptr;
+        gaunlet::Core::Ref<gaunlet::Scene::SkyboxComponent> m_skybox = nullptr;
 
         gaunlet::Core::Ref<gaunlet::Graphics::Framebuffer> m_framebuffer = nullptr;
 

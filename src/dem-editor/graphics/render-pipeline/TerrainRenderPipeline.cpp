@@ -3,11 +3,13 @@
 #include "gaunlet/core/window/Window.h"
 #include "gaunlet/prefab/render-pipelines/SceneProperties.h"
 #include "gaunlet/editor/Tags.h"
+#include "gaunlet/prefab/render-pipeline-extensions/EntitySelectionExtension.h"
+#include "dem-editor/graphics/render-pipeline/extensions/TerrainLocationExtension.h"
 
 namespace DemEditor {
 
-    TerrainRenderPipeline::TerrainRenderPipeline(unsigned int uniformBufferBindingPointOffset)
-        : m_terrainRenderer(3 + uniformBufferBindingPointOffset, 4 + uniformBufferBindingPointOffset) {
+    TerrainRenderPipeline::TerrainRenderPipeline(gaunlet::Core::Ref<gaunlet::Scene::DirectionalLightComponent> directionalLight, gaunlet::Core::Ref<gaunlet::Scene::SkyboxComponent> skybox, unsigned int uniformBufferBindingPointOffset)
+        : m_directionalLight(std::move(directionalLight)), m_skybox(std::move(skybox)), m_terrainRenderer(3 + uniformBufferBindingPointOffset, 4 + uniformBufferBindingPointOffset) {
 
         prepareShaders(uniformBufferBindingPointOffset);
 
@@ -21,9 +23,19 @@ namespace DemEditor {
             {gaunlet::Core::FramebufferAttachmentType::DepthStencil, gaunlet::Graphics::FramebufferDataFormat::DepthStencil}
         }, window->getViewportWidth() * window->getDPI(), window->getViewportHeight() * window->getDPI());
 
+        addExtension<gaunlet::Prefab::RenderPipelineExtensions::EntitySelectionExtension>(gaunlet::Core::CreateRef<gaunlet::Prefab::RenderPipelineExtensions::EntitySelectionExtension>(
+            m_framebuffer,
+            1, 2
+        ));
+
+        addExtension<TerrainLocationExtension>(gaunlet::Core::CreateRef<TerrainLocationExtension>(
+            m_framebuffer,
+            3
+        ));
+
     }
 
-    void TerrainRenderPipeline::run(const gaunlet::Core::Ref<gaunlet::Scene::Scene> &scene, const gaunlet::Core::Ref<gaunlet::Scene::Camera> &camera, const gaunlet::Core::Ref<gaunlet::Scene::DirectionalLightComponent> &directionalLight, const gaunlet::Core::Ref<gaunlet::Scene::SkyboxComponent> &skybox) {
+    void TerrainRenderPipeline::run(const gaunlet::Core::Ref<gaunlet::Scene::Scene> &scene, const gaunlet::Core::Ref<gaunlet::Scene::Camera> &camera) {
 
         // Set the draw buffers in the right order
         m_framebuffer->setDrawBuffers({
@@ -37,14 +49,14 @@ namespace DemEditor {
         m_framebuffer->clear();
 
         // Start scene doesn't do any drawing, it just sets the SceneProperties uniform buffer
-        startScene(scene, camera, directionalLight ? directionalLight : gaunlet::Core::CreateRef<gaunlet::Scene::DirectionalLightComponent>());
+        startScene(scene, camera, m_directionalLight ? m_directionalLight : gaunlet::Core::CreateRef<gaunlet::Scene::DirectionalLightComponent>());
 
         // The framebuffer needs to be bound before we start drawing anything
         m_framebuffer->bind();
 
         drawScene(scene);
         drawUI(scene);
-        drawSkybox(skybox);
+        drawSkybox(m_skybox);
 
         m_framebuffer->unbind();
 
@@ -59,7 +71,7 @@ namespace DemEditor {
 
     }
 
-    const gaunlet::Core::Ref<gaunlet::Graphics::Texture> &TerrainRenderPipeline::getRenderedTexture() {
+    const gaunlet::Core::Ref<gaunlet::Graphics::Texture> &TerrainRenderPipeline::getRenderTarget() {
         return m_framebuffer->getColorAttachment(SceneFramebufferAttachmentIndex);
     }
 
@@ -70,8 +82,7 @@ namespace DemEditor {
             1; // The SceneProperties uniform buffer that this render pipeline manages itself
     }
 
-    void
-    TerrainRenderPipeline::startScene(const gaunlet::Core::Ref<gaunlet::Scene::Scene> &scene, const gaunlet::Core::Ref<gaunlet::Scene::Camera> &camera, const gaunlet::Core::Ref<gaunlet::Scene::DirectionalLightComponent> &directionalLight) {
+    void TerrainRenderPipeline::startScene(const gaunlet::Core::Ref<gaunlet::Scene::Scene> &scene, const gaunlet::Core::Ref<gaunlet::Scene::Camera> &camera, const gaunlet::Core::Ref<gaunlet::Scene::DirectionalLightComponent> &directionalLight) {
 
         gaunlet::Prefab::RenderPipelines::SceneProperties sceneProperties(
             camera->getViewMatrix(), camera->getProjectionMatrix(),

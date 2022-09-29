@@ -61,13 +61,18 @@ namespace DemEditor {
             m_workspace->pushPanel("tools", new gaunlet::Prefab::GuiPanels::ToolsManagerPanel, "Tools Manager");
 
             // Prepare the Render Panel
-            m_workspace->addRenderPipeline("main", gaunlet::Core::CreateRef<TerrainRenderPipeline>());
+            m_workspace->addRenderPipeline("main", gaunlet::Core::CreateRef<TerrainRenderPipeline>(
+                gaunlet::Core::CreateRef<gaunlet::Scene::DirectionalLightComponent>(
+                    glm::vec3(0.8f, 0.8f, 0.8f),
+                    glm::vec3(-0.2f, -1.0f, -0.3f),
+                    0.5f, 0.7f
+                ),
+                gaunlet::Core::CreateRef<gaunlet::Scene::SkyboxComponent>(gaunlet::Core::CreateRef<gaunlet::Prefab::Skyboxes::SimpleSkyboxCubeMap>())
+            ));
             m_workspace->pushPanel(
                 "main",
                 new gaunlet::Editor::RenderPanel(),
                 "Scene",
-                "main",
-                "main",
                 "main",
                 "main",
                 "main"
@@ -97,12 +102,6 @@ namespace DemEditor {
             mainCamera->lookAt({0, 0, 0});
 
             m_workspace->addScene("main", gaunlet::Core::CreateRef<gaunlet::Scene::Scene>());
-            m_workspace->addDirectionalLight("main", gaunlet::Core::CreateRef<gaunlet::Scene::DirectionalLightComponent>(
-                glm::vec3(0.8f, 0.8f, 0.8f),
-                glm::vec3(-0.2f, -1.0f, -0.3f),
-                0.5f, 0.7f
-            ));
-            m_workspace->addSkybox("main", gaunlet::Core::CreateRef<gaunlet::Scene::SkyboxComponent>(gaunlet::Core::CreateRef<gaunlet::Prefab::Skyboxes::SimpleSkyboxCubeMap>()));
 
             // Scene entities
             auto& mainScene = m_workspace->getScene("main");
