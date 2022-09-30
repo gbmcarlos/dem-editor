@@ -3,6 +3,7 @@
 #include "dem-editor/graphics/render-pipeline/TerrainRenderPipeline.h"
 #include "dem-editor/gui/EntityComponentsPanel.h"
 #include "dem-editor/tools/TerrainSelectionTool.h"
+#include "dem-editor/graphics/components/HeightmapComponent.h"
 
 #include "pch.h"
 
@@ -30,6 +31,16 @@ namespace DemEditor {
 
         void onGuiRender() override {
             m_workspace->render();
+
+            auto heightmap = m_workspace->getScene("main")->getEntity("terrain").getComponent<HeightmapComponent>();
+
+            ImGui::Begin("Heightmap");
+            ImGui::Image(
+                (void *)(intptr_t)heightmap.getHeightmap()->getRendererId(),
+                ImVec2(300.0f, 300.0f),
+                ImVec2(0, 1), ImVec2(1, 0)
+            );
+
         }
 
         void onEvent(gaunlet::Core::Event &event) override {
@@ -62,6 +73,7 @@ namespace DemEditor {
 
             // Prepare the Render Panel
             m_workspace->addRenderPipeline("main", gaunlet::Core::CreateRef<TerrainRenderPipeline>(
+                "terrain",
                 gaunlet::Core::CreateRef<gaunlet::Scene::DirectionalLightComponent>(
                     glm::vec3(0.8f, 0.8f, 0.8f),
                     glm::vec3(-0.2f, -1.0f, -0.3f),
@@ -98,8 +110,8 @@ namespace DemEditor {
             // Scene components
             auto mainCamera = gaunlet::Core::CreateRef<gaunlet::Scene::PerspectiveCamera>(45.0f, (float) viewportWidth / (float) viewportHeight, 1.0f, -100000.0f);
             m_workspace->addCamera("main", mainCamera);
-            mainCamera->setPosition({0.0f, 1000.0f, 200.0f});
-            mainCamera->lookAt({0, 0, 0});
+            mainCamera->setPosition({0.0f, 420.0f, 1000.0f});
+            mainCamera->setRotation(-90.0f, -27.0f);
 
             m_workspace->addScene("main", gaunlet::Core::CreateRef<gaunlet::Scene::Scene>());
 
@@ -107,15 +119,17 @@ namespace DemEditor {
             auto& mainScene = m_workspace->getScene("main");
 
             gaunlet::Core::Ref<gaunlet::Graphics::TextureImage2D> heightmap = gaunlet::Core::CreateRef<gaunlet::Graphics::TextureImage2D>(ASSETS_PATH"/heightmap.png");
-            gaunlet::Core::Ref<gaunlet::Graphics::TextureImage2D> stamp = gaunlet::Core::CreateRef<gaunlet::Graphics::TextureImage2D>(ASSETS_PATH"/texture-1.jpeg");
 
-            auto plane = mainScene->createTaggedEntity<gaunlet::Editor::SceneEntityTag>("plane");
-            plane.addComponent<TerrainComponent>(
+            auto terrain = mainScene->createTaggedEntity<gaunlet::Editor::SceneEntityTag>("terrain");
+            terrain.addComponent<PlaneComponent>(
                 1000.0f, // Plane size
                 150.0f, 0.5f, // Quad subdivision
                 25.0f, // Triangle size
                 100.0f, // Max height
-                mainCamera,
+                mainCamera
+            );
+
+            terrain.addComponent<HeightmapComponent>(
                 heightmap
             );
 

@@ -23,15 +23,36 @@ namespace DemEditor {
             gaunlet::Core::EventDispatcher dispatcher(event);
             dispatcher.dispatch<gaunlet::Core::MouseButtonPress>(GL_BIND_CALLBACK_FN(TerrainSelectionTool::onMousePressEvent));
             dispatcher.dispatch<gaunlet::Core::CursorMoveEvent>(GL_BIND_CALLBACK_FN(TerrainSelectionTool::onCursorMoveEvent));
-            dispatcher.dispatch<gaunlet::Core::MouseButtonRelease>(GL_BIND_CALLBACK_FN(TerrainSelectionTool::onMouseReleaseEvent));
 
             return true;
 
         }
 
+        void onUpdate(gaunlet::Core::TimeStep timeStep) {
+
+            // Get the render panel
+            m_renderPanel = getWorkspace()->getHoveredRenderPanel();
+            if (!m_renderPanel || !m_renderPanel->getRenderPipeline()->hasExtension<TerrainLocationExtension>()) {
+                return;
+            }
+
+            // Get the terrain
+            m_plane = mousePickTaggedEntity<PlaneComponent>(m_renderPanel, gaunlet::Prefab::RenderPipelineExtensions::EntitySelectionExtension::EntityLayer::SceneLayer);
+            if (!m_plane || !m_plane.hasComponent<HeightmapComponent>()) {
+                return;
+            }
+
+            auto& heightmap = m_plane.getComponent<HeightmapComponent>();
+
+            if (gaunlet::Core::Input::isMouseButtonPressed(0)) {
+//                heightmap.update();
+            }
+
+        }
+
         void onGuiRender() override {
 
-            if (m_terrain) {
+            if (m_plane) {
                 ImGui::Text("Terrain Location: (%f %f %f)", m_terrainLocation.x, m_terrainLocation.y, m_terrainLocation.z);
             }
 
@@ -40,37 +61,28 @@ namespace DemEditor {
     protected:
 
         gaunlet::Editor::RenderPanel* m_renderPanel = nullptr;
-        gaunlet::Scene::Entity m_terrain;
+        gaunlet::Scene::Entity m_plane;
         glm::vec4 m_terrainLocation;
         gaunlet::Core::Ref<gaunlet::Graphics::TextureImage2D> m_stamp;
         float m_stampUVSize = 0.05;
 
         bool onMousePressEvent(gaunlet::Core::MouseButtonPress& event) {
 
+            // Get the render panel
             m_renderPanel = getWorkspace()->getHoveredRenderPanel();
-            if (!m_renderPanel) {
+            if (!m_renderPanel || !m_renderPanel->getRenderPipeline()->hasExtension<TerrainLocationExtension>()) {
                 return true;
             }
 
-            if (!m_renderPanel->getRenderPipeline()->hasExtension<TerrainLocationExtension>()) {
+            // Get the terrain
+            m_plane = mousePickTaggedEntity<PlaneComponent>(m_renderPanel, gaunlet::Prefab::RenderPipelineExtensions::EntitySelectionExtension::EntityLayer::SceneLayer);
+            if (!m_plane || !m_plane.hasComponent<HeightmapComponent>()) {
                 return true;
             }
 
-            m_terrain = mousePickTaggedEntity<TerrainComponent>(m_renderPanel, gaunlet::Prefab::RenderPipelineExtensions::EntitySelectionExtension::EntityLayer::SceneLayer);
+            auto& heightmap = m_plane.getComponent<HeightmapComponent>();
 
-            if (!m_terrain) {
-                return true;
-            }
-
-            m_terrainLocation = mousePickTerrainLocation(m_renderPanel, m_terrain.getComponent<TerrainComponent>());
-
-            if (!m_terrain.hasComponent<StampComponent>()) {
-                m_terrain.addComponent<StampComponent>(
-                    glm::vec2(m_terrainLocation.x, m_terrainLocation.z),
-                    m_stampUVSize,
-                    m_stamp
-                );
-            }
+            heightmap.update();
 
             return true;
 
@@ -78,36 +90,45 @@ namespace DemEditor {
 
         bool onCursorMoveEvent(gaunlet::Core::CursorMoveEvent& event) {
 
-            if (m_terrain && m_terrain.hasComponent<StampComponent>()) {
-
-                m_terrainLocation = mousePickTerrainLocation(m_renderPanel, m_terrain.getComponent<TerrainComponent>());
-                auto& stamp = m_terrain.getComponent<StampComponent>();
-                stamp.m_uvOrigin = {m_terrainLocation.x, m_terrainLocation.z};
-
+            m_renderPanel = getWorkspace()->getHoveredRenderPanel();
+            if (!m_renderPanel || !m_renderPanel->getRenderPipeline()->hasExtension<TerrainLocationExtension>()) {
+                return true;
             }
 
-            return true;
+            auto plane = mousePickTaggedEntity<PlaneComponent>(m_renderPanel, gaunlet::Prefab::RenderPipelineExtensions::EntitySelectionExtension::EntityLayer::SceneLayer);
 
-        }
+            if (plane) {
 
-        bool onMouseReleaseEvent(gaunlet::Core::MouseButtonRelease& event) {
+                // Remember the plane
+                m_plane = plane;
 
-            if (m_terrain) {
+                m_terrainLocation = mousePickTerrainLocation(m_renderPanel);
 
-                if (m_terrain.hasComponent<StampComponent>()) {
-                    m_terrain.removeComponent<StampComponent>();
+                // If there isn't a stamp yet, add it
+                if (!m_plane.hasComponent<StampComponent>()) {
+                    m_plane.addComponent<StampComponent>(
+                        glm::vec2(m_terrainLocation.x, m_terrainLocation.z),
+                        m_stampUVSize,
+                        m_stamp
+                    );
+                } else { // Otherwise, update it
+                    auto& stamp = m_plane.getComponent<StampComponent>();
+                    stamp.m_uvOrigin = {m_terrainLocation.x, m_terrainLocation.z};
                 }
 
-                m_terrain = {};
+            } else { // If we're not hovering any plane, remove the stamp  from the last plane (if any), and forget the plane
+
+                if (m_plane && m_plane.hasComponent<StampComponent>()) {
+                    m_plane.removeComponent<StampComponent>();
+                }
 
             }
 
-            m_renderPanel = nullptr;
-
             return true;
+
         }
 
-        glm::vec4 mousePickTerrainLocation(gaunlet::Editor::RenderPanel* renderPanel, TerrainComponent& terrain) {
+        glm::vec4 mousePickTerrainLocation(gaunlet::Editor::RenderPanel* renderPanel) {
 
             unsigned int pixelPositionX = renderPanel->getMousePositionX() * gaunlet::Core::Window::getCurrentInstance()->getDPI();
             unsigned int pixelPositionY = renderPanel->getMousePositionYInverted() * gaunlet::Core::Window::getCurrentInstance()->getDPI();

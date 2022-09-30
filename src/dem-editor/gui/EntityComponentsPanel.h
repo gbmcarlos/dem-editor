@@ -12,15 +12,15 @@ namespace DemEditor {
 
             gaunlet::Prefab::GuiPanels::EntityComponentsPanel::sections(entity);
 
-            if (entity.hasComponent<TerrainComponent>()) {
-                terrainComponentProperties(entity.getComponent<TerrainComponent>());
+            if (entity.hasComponent<PlaneComponent>()) {
+                terrainComponentProperties(entity.getComponent<PlaneComponent>());
             }
 
         }
 
     private:
 
-        void terrainComponentProperties(TerrainComponent& terrain) {
+        void terrainComponentProperties(PlaneComponent& terrain) {
 
             if (ImGui::CollapsingHeader("Terrain Component")) {
                 ImGui::DragFloat("Plane Size: ", &terrain.m_size, m_sliderSpeed);

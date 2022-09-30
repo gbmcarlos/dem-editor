@@ -5,10 +5,10 @@
 
 namespace DemEditor {
 
-    struct TerrainComponent {
+    struct PlaneComponent {
 
-        TerrainComponent(float size, float targetResolution, float resolutionSlope, float triangleSize, float maxHeight, gaunlet::Core::Ref<gaunlet::Scene::PerspectiveCamera>  camera, gaunlet::Core::Ref<gaunlet::Graphics::Texture>  heightmap)
-            : m_size(size), m_targetResolution(targetResolution), m_resolutionSlope(resolutionSlope), m_triangleSize(std::max(triangleSize, 4.0f)), m_maxHeight(maxHeight), m_camera(std::move(camera)), m_heightmap(std::move(heightmap)) {
+        PlaneComponent(float size, float targetResolution, float resolutionSlope, float triangleSize, float maxHeight, gaunlet::Core::Ref<gaunlet::Scene::PerspectiveCamera> camera)
+            : m_size(size), m_targetResolution(targetResolution), m_resolutionSlope(resolutionSlope), m_triangleSize(std::max(triangleSize, 4.0f)), m_maxHeight(maxHeight), m_camera(std::move(camera)) {
         }
 
         std::vector<PlaneQuad> getContent() {
@@ -27,7 +27,6 @@ namespace DemEditor {
         float m_triangleSize;
         float m_maxHeight;
         gaunlet::Core::Ref<gaunlet::Scene::PerspectiveCamera> m_camera;
-        gaunlet::Core::Ref<gaunlet::Graphics::Texture> m_heightmap;
 
     };
 

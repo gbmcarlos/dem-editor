@@ -5,6 +5,7 @@
 #include "gaunlet/graphics/render-pass/SimpleRenderPass.h"
 #include "dem-editor/graphics/components/TerrainComponents.h"
 #include "dem-editor/graphics/components/StampComponent.h"
+#include "dem-editor/graphics/components/HeightmapComponent.h"
 #include "gaunlet/scene/camera/Camera.h"
 
 #include "gaunlet/pch.h"
@@ -79,21 +80,21 @@ namespace DemEditor {
 
             auto terrainProperties = getTerrainProperties(entity);
 
-            auto& terrainComponent = entity.getComponent<TerrainComponent>();
+            auto& planeComponent = entity.getComponent<PlaneComponent>();
 
             m_terrainPropertiesUniformBuffer->setData(
                 (const void*) &terrainProperties,
                 sizeof(TerrainProperties)
             );
 
-            for (auto& quad : terrainComponent.getContent()) {
+            for (auto& quad : planeComponent.getContent()) {
 
                 auto planeQuadEntityProperties = getQuadProperties(quad);
 
                 bool batched = m_renderer.submitIndexedTriangles(
                     quad.m_vertices,
                     quad.m_indices,
-                    terrainComponent.m_heightmap,
+                    nullptr,
                     planeQuadEntityProperties
                 );
 
@@ -102,7 +103,7 @@ namespace DemEditor {
                     m_renderer.submitIndexedTriangles(
                         quad.m_vertices,
                         quad.m_indices,
-                        terrainComponent.m_heightmap,
+                        nullptr,
                         planeQuadEntityProperties
                     );
                 }
@@ -121,9 +122,13 @@ namespace DemEditor {
 
         TerrainProperties getTerrainProperties(gaunlet::Scene::Entity entity) {
 
-            auto& terrainComponent = entity.getComponent<TerrainComponent>();
+            auto& planeComponent = entity.getComponent<PlaneComponent>();
 
-            gaunlet::Scene::Frustum originalFrustum = terrainComponent.m_camera->getFrustum();
+            if (entity.hasComponent<HeightmapComponent>()) {
+                entity.getComponent<HeightmapComponent>().getHeightmap()->activate(1);
+            }
+
+            gaunlet::Scene::Frustum originalFrustum = planeComponent.m_camera->getFrustum();
             CameraFrustum cameraFrustum{
                 {originalFrustum.m_nearPlane.m_normal, originalFrustum.m_nearPlane.m_distance},
                 {originalFrustum.m_farPlane.m_normal, originalFrustum.m_farPlane.m_distance},
@@ -135,8 +140,8 @@ namespace DemEditor {
 
             TerrainProperties terrainProperties{
                 cameraFrustum,
-                terrainComponent.m_triangleSize,
-                terrainComponent.m_maxHeight
+                planeComponent.m_triangleSize,
+                planeComponent.m_maxHeight
             };
 
             if (entity.hasComponent<StampComponent>()) {
@@ -151,7 +156,7 @@ namespace DemEditor {
             }
 
             terrainProperties.m_entityId = entity.getId();
-            terrainProperties.m_terrainSize = terrainComponent.m_size;
+            terrainProperties.m_terrainSize = planeComponent.m_size;
 
             return terrainProperties;
 

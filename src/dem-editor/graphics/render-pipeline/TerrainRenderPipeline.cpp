@@ -8,8 +8,8 @@
 
 namespace DemEditor {
 
-    TerrainRenderPipeline::TerrainRenderPipeline(gaunlet::Core::Ref<gaunlet::Scene::DirectionalLightComponent> directionalLight, gaunlet::Core::Ref<gaunlet::Scene::SkyboxComponent> skybox, unsigned int uniformBufferBindingPointOffset)
-        : m_directionalLight(std::move(directionalLight)), m_skybox(std::move(skybox)), m_terrainRenderer(3 + uniformBufferBindingPointOffset, 4 + uniformBufferBindingPointOffset) {
+    TerrainRenderPipeline::TerrainRenderPipeline(const char* terrainEntityName, gaunlet::Core::Ref<gaunlet::Scene::DirectionalLightComponent> directionalLight, gaunlet::Core::Ref<gaunlet::Scene::SkyboxComponent> skybox, unsigned int uniformBufferBindingPointOffset)
+        : m_terrainEntityName(terrainEntityName), m_directionalLight(std::move(directionalLight)), m_skybox(std::move(skybox)), m_terrainRenderer(3 + uniformBufferBindingPointOffset, 4 + uniformBufferBindingPointOffset) {
 
         prepareShaders(uniformBufferBindingPointOffset);
 
@@ -157,25 +157,21 @@ namespace DemEditor {
 
     void TerrainRenderPipeline::submitScenePlanes(const gaunlet::Core::Ref<gaunlet::Scene::Scene> &scene) {
 
-        // Model faces: those models that don't have the Wireframe tag
-        auto facesView = scene->getRegistry().view<TerrainComponent, gaunlet::Editor::SceneEntityTag>(entt::exclude<gaunlet::Editor::WireframeModelTag>);
-        for (auto e : facesView) {
-            m_terrainRenderer.render(
-                {e, scene},
-                m_terrainRenderer.getShaders().get("plane-faces")
-            );
-        }
+        auto terrainEntity = scene->getEntity(m_terrainEntityName);
 
-        // Model wireframes: those models that have the Wireframe tag
-        gaunlet::Core::RenderCommand::setPolygonMode(gaunlet::Core::PolygonMode::Line);
-        auto wireframesView = scene->getRegistry().view<TerrainComponent, gaunlet::Editor::SceneEntityTag, gaunlet::Editor::WireframeModelTag>();
-        for (auto e : wireframesView) {
-            m_terrainRenderer.render(
-                {e, scene},
-                m_terrainRenderer.getShaders().get("plane-faces")
-            );
+        if (terrainEntity.hasComponent<PlaneComponent>()) {
+
+            auto& shader = m_terrainRenderer.getShaders().get("plane-faces");
+
+            if (terrainEntity.hasComponent<gaunlet::Editor::WireframeModelTag>()) {
+                gaunlet::Core::RenderCommand::setPolygonMode(gaunlet::Core::PolygonMode::Line);
+                m_terrainRenderer.render(terrainEntity,shader);
+                gaunlet::Core::RenderCommand::setPolygonMode(gaunlet::Core::PolygonMode::Fill);
+            } else {
+                m_terrainRenderer.render(terrainEntity,shader);
+            }
+
         }
-        gaunlet::Core::RenderCommand::setPolygonMode(gaunlet::Core::PolygonMode::Fill);
 
     }
 
