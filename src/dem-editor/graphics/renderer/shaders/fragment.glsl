@@ -65,7 +65,7 @@ layout (location = 2) out vec3 o_terrainPosition;
 
 // Textures
 uniform sampler2D heightmap;
-uniform sampler2D stamp;
+uniform sampler2D brushStamp;
 
 vec4 getDirectionalLightColor(
     vec3 color, vec3 direction,
@@ -95,7 +95,7 @@ void main() {
             (te_textureCoordinates.x - stampLeft) / stampSize,
             (te_textureCoordinates.y - stampBottom) / stampSize
         );
-        vec4 stampColor = texture(stamp, stampTextureCoordinates);
+        vec4 stampColor = texture(brushStamp, stampTextureCoordinates);
         o_color += stampColor;
     }
 

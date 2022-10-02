@@ -17,14 +17,13 @@ namespace DemEditor {
         explicit HeightmapComponent(gaunlet::Core::Ref<gaunlet::Graphics::TextureImage2D> heightmap)
             : m_heightmap(std::move(heightmap)) {
             prepareFramebuffer();
-            prepareShader();
         }
 
         const gaunlet::Core::Ref<gaunlet::Graphics::TextureImage2D>& getHeightmap() {
             return m_heightmap;
         }
 
-        void update() {
+        void update(const gaunlet::Core::Ref<gaunlet::Graphics::Shader>& shader) {
 
             // A full screen quad
             static std::vector<gaunlet::Graphics::Vertex> vertices = {
@@ -36,12 +35,11 @@ namespace DemEditor {
             static std::vector<unsigned int> indices = {0, 1, 2, 2, 3, 0};
 
             m_framebuffer->bind();
-            m_framebuffer->clear();
             m_heightmap->activate(0);
             gaunlet::Graphics::SimpleRenderPass::renderIndexedVertices(
                 vertices,
                 indices,
-                m_shaderLibrary.get("editor"),
+                shader,
                 gaunlet::Graphics::RenderMode::Triangle
             );
 
@@ -53,20 +51,13 @@ namespace DemEditor {
                 m_heightmap->getHeight(),
                 m_heightmap->getRendererId()
             );
-//            m_framebuffer->unbind();
+            m_framebuffer->unbind();
 
         }
 
     private:
 
         void prepareFramebuffer() {
-
-//            gaunlet::Graphics::FramebufferDataFormat dataFormat;
-//
-//            switch (m_heightmap->getFormat()) {
-//                case gaunlet::Core::TextureDataFormat::RGB:     dataFormat = gaunlet::Graphics::FramebufferDataFormat::RGB; break
-//                case gaunlet::Core::TextureDataFormat::RGBA:    dataFormat = gaunlet::Graphics::FramebufferDataFormat::RGBA; break
-//            }
 
             // Prepare the main framebuffer, which contains the texture that we will be writing update to, and copied them from
             m_framebuffer = gaunlet::Core::CreateRef<gaunlet::Graphics::Framebuffer>(std::initializer_list<gaunlet::Graphics::FramebufferAttachmentSpec>{
@@ -108,21 +99,6 @@ namespace DemEditor {
             gaunlet::Core::RenderCommand::deleteFramebuffer(tempFramebufferId);
 
         }
-
-        void prepareShader() {
-
-            std::map<gaunlet::Core::ShaderType, std::string> editorSources {
-                {gaunlet::Core::ShaderType::Vertex, WORKING_DIR"/tools/editor/vertex.glsl"},
-                {gaunlet::Core::ShaderType::Fragment, WORKING_DIR"/tools/editor/fragment.glsl"}
-            };
-
-            auto editor = m_shaderLibrary.load("editor", editorSources);
-
-            editor->setUniform1i("heightmap", 0);
-
-        }
-
-        gaunlet::Graphics::ShaderLibrary m_shaderLibrary;
 
         gaunlet::Core::Ref<gaunlet::Graphics::TextureImage2D> m_heightmap;
         gaunlet::Core::Ref<gaunlet::Graphics::Framebuffer> m_framebuffer;

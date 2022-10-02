@@ -3,9 +3,9 @@
 #include "gaunlet/scene/renderer/ObjectRenderer.h"
 #include "gaunlet/prefab/object-renderers/model-renderer/ModelRenderer.h"
 #include "gaunlet/graphics/render-pass/SimpleRenderPass.h"
-#include "dem-editor/graphics/components/TerrainComponents.h"
-#include "dem-editor/graphics/components/StampComponent.h"
-#include "dem-editor/graphics/components/HeightmapComponent.h"
+#include "dem-editor/graphics/components/terrain/PlaneComponent.h"
+#include "dem-editor/graphics/components/terrain/StampComponent.h"
+#include "dem-editor/graphics/components/terrain/HeightmapComponent.h"
 #include "gaunlet/scene/camera/Camera.h"
 
 #include "gaunlet/pch.h"
@@ -47,7 +47,7 @@ namespace DemEditor {
         float m_triangleSize;
         float m_maxHeight;
         glm::vec2 m_stampOrigin = {0, 0};
-        float m_stampSize = 0;
+        float m_brushStampSize = 0;
         int m_entityId;
         float m_terrainSize;
     };
@@ -149,7 +149,7 @@ namespace DemEditor {
                 auto& stampComponent = entity.getComponent<StampComponent>();
 
                 terrainProperties.m_stampOrigin = stampComponent.m_uvOrigin;
-                terrainProperties.m_stampSize = stampComponent.m_uvSize;
+                terrainProperties.m_brushStampSize = stampComponent.m_uvSize;
 
                 stampComponent.m_stampTexture->activate(2);
 
@@ -208,7 +208,7 @@ namespace DemEditor {
 
             // Set "heightmap" and "stamp" textures (slot 0 is for the whiteTexture)
             facesShader->setUniform1i("heightmap", 1);
-            facesShader->setUniform1i("stamp", 2);
+            facesShader->setUniform1i("brushStamp", 2);
 
             facesShader->linkUniformBuffer(m_quadPropertySetsUniformBuffer);
             facesShader->linkUniformBuffer(m_terrainPropertiesUniformBuffer);

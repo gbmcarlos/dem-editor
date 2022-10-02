@@ -2,12 +2,33 @@
 
 #include "dem-editor/graphics/render-pipeline/TerrainRenderPipeline.h"
 #include "dem-editor/gui/EntityComponentsPanel.h"
-#include "dem-editor/tools/TerrainSelectionTool.h"
-#include "dem-editor/graphics/components/HeightmapComponent.h"
+#include "dem-editor/tools/terrain-deformation/TerrainElevationTool.h"
+#include "dem-editor/graphics/components/terrain/HeightmapComponent.h"
 
 #include "pch.h"
 
 namespace DemEditor {
+
+    class RadialElevationTerrainBrush : public Brush {
+
+    public:
+
+        RadialElevationTerrainBrush()
+            : m_stamp(gaunlet::Core::CreateRef<gaunlet::Graphics::TextureImage2D>(ASSETS_PATH"/texture-1.jpeg")) {}
+
+        const char * getFragmentShaderPath() override {
+            return ASSETS_PATH"/fragment.glsl";
+        }
+
+        const gaunlet::Core::Ref<gaunlet::Graphics::TextureImage2D>& getBrushStampTexture() override {
+            return m_stamp;
+        }
+
+    private:
+
+        gaunlet::Core::Ref<gaunlet::Graphics::TextureImage2D> m_stamp;
+
+    };
 
     class Application : public gaunlet::Core::Application {
 
@@ -31,16 +52,6 @@ namespace DemEditor {
 
         void onGuiRender() override {
             m_workspace->render();
-
-            auto heightmap = m_workspace->getScene("main")->getEntity("terrain").getComponent<HeightmapComponent>();
-
-            ImGui::Begin("Heightmap");
-            ImGui::Image(
-                (void *)(intptr_t)heightmap.getHeightmap()->getRendererId(),
-                ImVec2(300.0f, 300.0f),
-                ImVec2(0, 1), ImVec2(1, 0)
-            );
-
         }
 
         void onEvent(gaunlet::Core::Event &event) override {
@@ -94,10 +105,14 @@ namespace DemEditor {
 
         void prepareTools() {
 
+            auto terrainElevationTool = gaunlet::Core::CreateRef<TerrainElevationTool>();
+            terrainElevationTool->addBrush("radial-elevation", gaunlet::Core::CreateRef<RadialElevationTerrainBrush>());
+            terrainElevationTool->activateBrush("radial-elevation");
+
             m_workspace->addTool("fp-camera-controller", gaunlet::Core::CreateRef<gaunlet::Prefab::EditorTools::FirstPersonCameraController>("main", 300.0f, 0.5f));
             m_workspace->addTool("transformer", gaunlet::Core::CreateRef<gaunlet::Prefab::EditorTools::TransformerTool>());
-            m_workspace->addTool("terrain-picker", gaunlet::Core::CreateRef<TerrainSelectionTool>());
-            m_workspace->activateTool("terrain-picker");
+            m_workspace->addTool("terrain-elevation", terrainElevationTool);
+            m_workspace->activateTool("terrain-elevation");
 
         }
 
