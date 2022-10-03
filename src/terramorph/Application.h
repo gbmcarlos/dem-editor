@@ -1,34 +1,15 @@
 #pragma once
 
-#include "terramorph/graphics/render-pipeline/TerrainRenderPipeline.h"
-#include "terramorph/gui/EntityComponentsPanel.h"
-#include "terramorph/tools/terrain-deformation/TerrainElevationTool.h"
-#include "terramorph/graphics/components/terrain/HeightmapComponent.h"
+#include "terramorph/core/graphics/render-pipeline/TerrainRenderPipeline.h"
+#include "terramorph/core/gui/EntityComponentsPanel.h"
+#include "terramorph/core/tools/terrain-deformation/stamp-deformation/StampDeformationTool.h"
+#include "terramorph/core/graphics/terrain-components/HeightmapComponent.h"
+#include "terramorph/core/tools/terrain-deformation/stamp-deformation/StampDeformationTool.h"
+#include "terramorph/sculpting/stamps/procedural-radial-stamp/ProceduralRadialStamp.h"
 
 #include "pch.h"
 
 namespace terramorph {
-
-    class RadialElevationTerrainBrush : public Brush {
-
-    public:
-
-        RadialElevationTerrainBrush()
-            : m_stamp(gaunlet::Core::CreateRef<gaunlet::Graphics::TextureImage2D>(ASSETS_PATH"/texture-1.jpeg")) {}
-
-        const char * getFragmentShaderPath() override {
-            return ASSETS_PATH"/fragment.glsl";
-        }
-
-        const gaunlet::Core::Ref<gaunlet::Graphics::TextureImage2D>& getBrushStampTexture() override {
-            return m_stamp;
-        }
-
-    private:
-
-        gaunlet::Core::Ref<gaunlet::Graphics::TextureImage2D> m_stamp;
-
-    };
 
     class Application : public gaunlet::Core::Application {
 
@@ -71,24 +52,22 @@ namespace terramorph {
             m_workspace->setLayoutSpec({
                 {
                     {gaunlet::Editor::DockSpacePosition::Left, 0.2f, {"Render Panel"}},
-                    {gaunlet::Editor::DockSpacePosition::Down, 0.2f,  0, {"Tools Manager"}},
-                    {gaunlet::Editor::DockSpacePosition::Down, 0.4f,  0, {"Entity Components"}},
+                    {gaunlet::Editor::DockSpacePosition::Down, 0.7f,  0, {"Tools Manager"}},
                     {gaunlet::Editor::DockSpacePosition::Center, 0.0f,  {"Scene"}, ImGuiDockNodeFlags_NoTabBar}
                 }, viewportWidth, viewportHeight
             });
 
             // Push the GUI panels
             m_workspace->pushPanel("render-panel", new gaunlet::Prefab::GuiPanels::RenderPanelComponentsPanel, "Render Panel");
-            m_workspace->pushPanel("components", new EntityComponentsPanel, "Entity Components");
             m_workspace->pushPanel("tools", new gaunlet::Prefab::GuiPanels::ToolsManagerPanel, "Tools Manager");
 
             // Prepare the Render Panel
-            m_workspace->addRenderPipeline("main", gaunlet::Core::CreateRef<TerrainRenderPipeline>(
+            m_workspace->addRenderPipeline("main", gaunlet::Core::CreateRef<Core::TerrainRenderPipeline>(
                 "terrain",
                 gaunlet::Core::CreateRef<gaunlet::Scene::DirectionalLightComponent>(
                     glm::vec3(0.8f, 0.8f, 0.8f),
                     glm::vec3(-0.2f, -1.0f, -0.3f),
-                    0.5f, 0.7f
+                    0.2f, 0.7f
                 ),
                 gaunlet::Core::CreateRef<gaunlet::Scene::SkyboxComponent>(gaunlet::Core::CreateRef<gaunlet::Prefab::Skyboxes::SimpleSkyboxCubeMap>())
             ));
@@ -105,14 +84,14 @@ namespace terramorph {
 
         void prepareTools() {
 
-            auto terrainElevationTool = gaunlet::Core::CreateRef<TerrainElevationTool>();
-            terrainElevationTool->addBrush("radial-elevation", gaunlet::Core::CreateRef<RadialElevationTerrainBrush>());
-            terrainElevationTool->activateBrush("radial-elevation");
+            auto stampDeformationTool = gaunlet::Core::CreateRef<Core::StampDeformationTool>();
+            stampDeformationTool->addBrush("radial-elevation", gaunlet::Core::CreateRef<Sculpting::ProceduralRadialStamp>());
+            stampDeformationTool->activateBrush("radial-elevation");
 
             m_workspace->addTool("fp-camera-controller", gaunlet::Core::CreateRef<gaunlet::Prefab::EditorTools::FirstPersonCameraController>("main", 300.0f, 0.5f));
             m_workspace->addTool("transformer", gaunlet::Core::CreateRef<gaunlet::Prefab::EditorTools::TransformerTool>());
-            m_workspace->addTool("terrain-elevation", terrainElevationTool);
-            m_workspace->activateTool("terrain-elevation");
+            m_workspace->addTool("stamp-deformation", stampDeformationTool);
+            m_workspace->activateTool("stamp-deformation");
 
         }
 
@@ -133,10 +112,8 @@ namespace terramorph {
             // Scene entities
             auto& mainScene = m_workspace->getScene("main");
 
-            gaunlet::Core::Ref<gaunlet::Graphics::TextureImage2D> heightmap = gaunlet::Core::CreateRef<gaunlet::Graphics::TextureImage2D>(ASSETS_PATH"/heightmap.png");
-
             auto terrain = mainScene->createTaggedEntity<gaunlet::Editor::SceneEntityTag>("terrain");
-            terrain.addComponent<PlaneComponent>(
+            terrain.addComponent<Core::PlaneComponent>(
                 1000.0f, // Plane size
                 150.0f, 0.5f, // Quad subdivision
                 25.0f, // Triangle size
@@ -144,9 +121,7 @@ namespace terramorph {
                 mainCamera
             );
 
-            terrain.addComponent<HeightmapComponent>(
-                heightmap
-            );
+            terrain.addComponent<Core::HeightmapComponent>(1000);
 
         }
 

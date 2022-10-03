@@ -1,7 +1,5 @@
 #include "terramorph/Application.h"
 
-#include "terramorph/graphics/render-pipeline/TerrainRenderPipeline.h"
-
 int main() {
 
     auto window = gaunlet::Core::CreateRef<gaunlet::Core::Window>("Terramorph");
