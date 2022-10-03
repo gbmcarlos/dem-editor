@@ -55,7 +55,7 @@ layout (std140) uniform TerrainProperties {
 };
 
 in vec2 v_textureCoordinates[];
-in vec3 v_normal[];
+//in vec3 v_normal[];
 flat in uint v_entityIndex[];
 
 out vec2 tc_textureCoordinates[];
@@ -92,7 +92,7 @@ vec2 getVertexIndices(uint edgeIndex);
 void main() {
 
     tc_textureCoordinates[gl_InvocationID] = v_textureCoordinates[gl_InvocationID];
-    tc_normal[gl_InvocationID] = v_normal[gl_InvocationID];
+//    tc_normal[gl_InvocationID] = v_normal[gl_InvocationID];
     gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 
     if (gl_InvocationID == 0) {

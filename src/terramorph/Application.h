@@ -1,13 +1,13 @@
 #pragma once
 
-#include "dem-editor/graphics/render-pipeline/TerrainRenderPipeline.h"
-#include "dem-editor/gui/EntityComponentsPanel.h"
-#include "dem-editor/tools/terrain-deformation/TerrainElevationTool.h"
-#include "dem-editor/graphics/components/terrain/HeightmapComponent.h"
+#include "terramorph/graphics/render-pipeline/TerrainRenderPipeline.h"
+#include "terramorph/gui/EntityComponentsPanel.h"
+#include "terramorph/tools/terrain-deformation/TerrainElevationTool.h"
+#include "terramorph/graphics/components/terrain/HeightmapComponent.h"
 
 #include "pch.h"
 
-namespace DemEditor {
+namespace terramorph {
 
     class RadialElevationTerrainBrush : public Brush {
 

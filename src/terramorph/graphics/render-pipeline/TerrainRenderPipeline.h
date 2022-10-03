@@ -5,10 +5,10 @@
 #include "gaunlet/scene/camera/Camera.h"
 #include "gaunlet/scene/components/BasicComponents.h"
 #include "gaunlet/prefab/object-renderers/skybox-renderer/SkyboxRenderer.h"
-#include "dem-editor/graphics/renderer/TerrainRenderer.h"
+#include "terramorph/graphics/renderer/TerrainRenderer.h"
 #include "gaunlet/graphics/framebuffer/Framebuffer.h"
 
-namespace DemEditor {
+namespace terramorph {
 
     class TerrainRenderPipeline : public gaunlet::Editor::RenderPipeline {
 

@@ -2,9 +2,9 @@
 
 #include <utility>
 
-#include "dem-editor/pch.h"
+#include "terramorph/pch.h"
 
-namespace DemEditor {
+namespace terramorph {
 
     struct StampComponent {
 

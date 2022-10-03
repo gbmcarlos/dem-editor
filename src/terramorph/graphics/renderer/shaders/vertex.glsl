@@ -60,7 +60,7 @@ layout (location = 3) in uint a_entityIndex;
 
 // Outputs
 out vec2 v_textureCoordinates;
-out vec3 v_normal;
+//out vec3 v_normal;
 flat out uint v_entityIndex;
 
 // Textures
@@ -69,7 +69,7 @@ uniform sampler2D heightmap;
 void main() {
 
     v_textureCoordinates = a_textureCoordinates;
-    v_normal = a_normal;
+//    v_normal = a_normal;
     v_entityIndex = a_entityIndex;
 
     vec4 vertexPosition = a_position;

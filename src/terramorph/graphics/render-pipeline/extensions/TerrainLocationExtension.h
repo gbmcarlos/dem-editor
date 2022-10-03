@@ -5,7 +5,7 @@
 #include "gaunlet/editor/render-pipeline/RenderPipelineExtension.h"
 #include "gaunlet/graphics/framebuffer/Framebuffer.h"
 
-namespace DemEditor {
+namespace terramorph {
 
     class TerrainLocationExtension : public gaunlet::Editor::RenderPipelineExtension {
 

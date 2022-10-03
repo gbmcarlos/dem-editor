@@ -8,7 +8,7 @@
 #include "gaunlet/core/render/RenderCommand.h"
 #include "gaunlet/graphics/render-pass/SimpleRenderPass.h"
 
-namespace DemEditor {
+namespace terramorph {
 
     class HeightmapComponent {
 

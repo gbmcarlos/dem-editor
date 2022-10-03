@@ -76,10 +76,10 @@ vec4 getDirectionalLightColor(
 void main() {
 
     vec4 textureColor = texture(heightmap, te_textureCoordinates);
-    //vec4 directionalLightColor = getDirectionalLightColor(directionalLight.color, directionalLight.direction, directionalLight.ambientIntensity, directionalLight.diffuseIntensity, te_normal);
+    vec4 directionalLightColor = getDirectionalLightColor(directionalLight.color, directionalLight.direction, directionalLight.ambientIntensity, directionalLight.diffuseIntensity, te_normal);
     float halfSize = stampSize/2;
 
-    o_color = textureColor;
+    o_color = directionalLightColor;
     float stampLeft = (stampOrigin.x - halfSize);
     float stampRight = (stampOrigin.x + halfSize);
     float stampBottom = (stampOrigin.y - halfSize);

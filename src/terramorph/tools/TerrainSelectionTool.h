@@ -1,11 +1,11 @@
 #pragma once
 
 #include "gaunlet/prefab/editor-tools/EntitySelectionTool.h"
-#include "dem-editor/graphics/components/terrain/PlaneComponent.h"
-#include "dem-editor/graphics/components/terrain/HeightmapComponent.h"
-#include "dem-editor/graphics/render-pipeline/extensions/TerrainLocationExtension.h"
+#include "terramorph/graphics/components/terrain/PlaneComponent.h"
+#include "terramorph/graphics/components/terrain/HeightmapComponent.h"
+#include "terramorph/graphics/render-pipeline/extensions/TerrainLocationExtension.h"
 
-namespace DemEditor {
+namespace terramorph {
 
     class TerrainSelectionTool : public gaunlet::Prefab::EditorTools::EntitySelectionTool {
 

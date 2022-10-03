@@ -1,9 +1,9 @@
 #pragma once
 
 #include "gaunlet/scene/camera/PerspectiveCamera.h"
-#include "dem-editor/graphics/components/procedural-plane/ProceduralPlane.h"
+#include "terramorph/graphics/components/procedural-plane/ProceduralPlane.h"
 
-namespace DemEditor {
+namespace terramorph {
 
     struct PlaneComponent {
 

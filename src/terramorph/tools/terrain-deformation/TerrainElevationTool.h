@@ -1,10 +1,10 @@
 #pragma once
 
 #include "gaunlet/core/event/events/MouseEvent.h"
-#include "dem-editor/tools/TerrainSelectionTool.h"
-#include "dem-editor/tools/terrain-deformation/Brush.h"
+#include "terramorph/tools/TerrainSelectionTool.h"
+#include "terramorph/tools/terrain-deformation/Brush.h"
 
-namespace DemEditor {
+namespace terramorph {
 
     class TerrainElevationTool : public TerrainSelectionTool {
 

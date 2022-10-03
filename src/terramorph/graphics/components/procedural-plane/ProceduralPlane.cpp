@@ -1,6 +1,6 @@
 #include "ProceduralPlane.h"
 
-namespace DemEditor {
+namespace terramorph {
 
     std::vector<PlaneQuad> QuadTreePatch::compute(float planeSize, float targetResolution, float resolutionSlope, const glm::vec3& cameraPosition, const gaunlet::Scene::Frustum& cameraFrustum) {
 

@@ -2,7 +2,7 @@
 
 #include "gaunlet/prefab/gui-panels/EntityComponentsPanel.h"
 
-namespace DemEditor {
+namespace terramorph {
 
     class EntityComponentsPanel : public gaunlet::Prefab::GuiPanels::EntityComponentsPanel {
 

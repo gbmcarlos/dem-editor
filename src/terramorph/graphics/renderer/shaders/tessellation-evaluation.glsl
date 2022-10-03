@@ -55,7 +55,7 @@ layout (std140) uniform TerrainProperties {
 };
 
 in vec2 tc_textureCoordinates[];
-in vec3 tc_normal[];
+//in vec3 tc_normal[];
 
 out vec2 te_textureCoordinates;
 out vec3 te_normal;
@@ -65,7 +65,7 @@ out vec3 tc_vertexColor;
 uniform sampler2D heightmap;
 
 vec2 interpolateTextureCoordinates();
-vec3 interpolateNormal();
+vec3 computeNormal();
 vec3 getVertexColor();
 vec4 interpolateVertexPosition();
 vec2 interpolate2(vec2 point, vec2 vector1, vec2 vector2, vec2 vector3, vec2 vector4);
@@ -75,7 +75,7 @@ vec4 interpolate4(vec2 point, vec4 vector1, vec4 vector2, vec4 vector3, vec4 vec
 void main() {
 
     te_textureCoordinates = interpolateTextureCoordinates();
-    te_normal = interpolateNormal();
+    te_normal = computeNormal();
     tc_vertexColor = getVertexColor();
 
     vec4 vertexPosition = interpolateVertexPosition();
@@ -90,8 +90,23 @@ vec2 interpolateTextureCoordinates() {
     return interpolate2(gl_TessCoord.xy, tc_textureCoordinates[0], tc_textureCoordinates[1], tc_textureCoordinates[2], tc_textureCoordinates[3]);
 }
 
-vec3 interpolateNormal() {
-    return interpolate3(gl_TessCoord.xy, tc_normal[0], tc_normal[1], tc_normal[2], tc_normal[3]);
+vec3 computeNormal() {
+
+    float texelSize = 1.0f/terrainSize;
+
+    vec4 heights;
+    heights.x = texture(heightmap, te_textureCoordinates + texelSize*vec2(0, -1)).r * maxHeight;
+    heights.y = texture(heightmap, te_textureCoordinates + texelSize*vec2(-1, 0)).r * maxHeight;
+    heights.z = texture(heightmap, te_textureCoordinates + texelSize*vec2(1, 0)).r * maxHeight;
+    heights.w = texture(heightmap, te_textureCoordinates + texelSize*vec2(0, 1)).r * maxHeight;
+
+    vec3 normal;
+    normal.z = -(heights.x - heights.y);
+    normal.x = (heights.z - heights.w);
+    normal.y = 2 * texelSize * terrainSize; // pixel space -> uv space -> world space
+
+    return normalize(normal);
+
 }
 
 vec3 getVertexColor() {

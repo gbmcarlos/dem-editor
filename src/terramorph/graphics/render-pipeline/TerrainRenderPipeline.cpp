@@ -1,12 +1,12 @@
-#include "dem-editor/graphics/render-pipeline/TerrainRenderPipeline.h"
+#include "terramorph/graphics/render-pipeline/TerrainRenderPipeline.h"
 
 #include "gaunlet/core/window/Window.h"
 #include "gaunlet/prefab/render-pipelines/SceneProperties.h"
 #include "gaunlet/editor/Tags.h"
 #include "gaunlet/prefab/render-pipeline-extensions/EntitySelectionExtension.h"
-#include "dem-editor/graphics/render-pipeline/extensions/TerrainLocationExtension.h"
+#include "terramorph/graphics/render-pipeline/extensions/TerrainLocationExtension.h"
 
-namespace DemEditor {
+namespace terramorph {
 
     TerrainRenderPipeline::TerrainRenderPipeline(const char* terrainEntityName, gaunlet::Core::Ref<gaunlet::Scene::DirectionalLightComponent> directionalLight, gaunlet::Core::Ref<gaunlet::Scene::SkyboxComponent> skybox, unsigned int uniformBufferBindingPointOffset)
         : m_terrainEntityName(terrainEntityName), m_directionalLight(std::move(directionalLight)), m_skybox(std::move(skybox)), m_terrainRenderer(3 + uniformBufferBindingPointOffset, 4 + uniformBufferBindingPointOffset) {

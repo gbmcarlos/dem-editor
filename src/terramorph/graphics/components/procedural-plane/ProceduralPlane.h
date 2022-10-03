@@ -5,7 +5,7 @@
 
 #include "gaunlet/pch.h"
 
-namespace DemEditor {
+namespace terramorph {
 
     class QuadTreePatch;
 

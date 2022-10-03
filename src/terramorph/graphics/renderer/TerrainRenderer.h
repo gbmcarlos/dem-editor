@@ -3,14 +3,14 @@
 #include "gaunlet/scene/renderer/ObjectRenderer.h"
 #include "gaunlet/prefab/object-renderers/model-renderer/ModelRenderer.h"
 #include "gaunlet/graphics/render-pass/SimpleRenderPass.h"
-#include "dem-editor/graphics/components/terrain/PlaneComponent.h"
-#include "dem-editor/graphics/components/terrain/StampComponent.h"
-#include "dem-editor/graphics/components/terrain/HeightmapComponent.h"
+#include "terramorph/graphics/components/terrain/PlaneComponent.h"
+#include "terramorph/graphics/components/terrain/StampComponent.h"
+#include "terramorph/graphics/components/terrain/HeightmapComponent.h"
 #include "gaunlet/scene/camera/Camera.h"
 
 #include "gaunlet/pch.h"
 
-namespace DemEditor {
+namespace terramorph {
 
     struct QuadProperties {
 
