@@ -78,16 +78,33 @@ namespace terramorph::Core {
 
         void recreate() {
 
-            // Prepare the main framebuffer, which contains the heightmap, and the texture that we will be writing updates to, and copying them from
-            m_framebuffer = gaunlet::Core::CreateRef<gaunlet::Graphics::Framebuffer>(std::initializer_list<gaunlet::Graphics::FramebufferAttachmentSpec>{
-                {gaunlet::Core::FramebufferAttachmentType::Color, gaunlet::Graphics::FramebufferDataFormat::R_Float, 0.0f},
-                {gaunlet::Core::FramebufferAttachmentType::Color, gaunlet::Graphics::FramebufferDataFormat::R_Float, 0.0f}
-            }, m_size, m_size);
+            m_framebuffer = gaunlet::Core::CreateRef<gaunlet::Graphics::Framebuffer>(
+                m_size, m_size
+            );
+
+            // The deformation heightmap
+            m_framebuffer->addColorAttachment<float>(
+                gaunlet::Graphics::ColorAttachmentSpec::Channels::CHANNELS_1,
+                gaunlet::Graphics::ColorAttachmentSpec::Type::TYPE_UNI,
+                gaunlet::Graphics::ColorAttachmentSpec::Size::SIZE_16,
+                0.0f
+            );
+
+            // The main heightmap
+            m_framebuffer->addColorAttachment<float>(
+                gaunlet::Graphics::ColorAttachmentSpec::Channels::CHANNELS_1,
+                gaunlet::Graphics::ColorAttachmentSpec::Type::TYPE_UNI,
+                gaunlet::Graphics::ColorAttachmentSpec::Size::SIZE_16,
+                0.0f
+            );
+
+            m_framebuffer->recreate();
 
             m_framebuffer->clear();
 
             // Save the second attachment as the heightmap and deattach it from the framebuffer
             m_heightmap = m_framebuffer->getColorAttachment(1);
+            m_framebuffer->deAttachColor(1);
 
         }
 

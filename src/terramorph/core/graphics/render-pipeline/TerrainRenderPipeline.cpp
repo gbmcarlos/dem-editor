@@ -12,16 +12,7 @@ namespace terramorph::Core {
         : m_terrainEntityName(terrainEntityName), m_directionalLight(std::move(directionalLight)), m_skybox(std::move(skybox)), m_terrainRenderer(3 + uniformBufferBindingPointOffset, 4 + uniformBufferBindingPointOffset) {
 
         prepareShaders(uniformBufferBindingPointOffset);
-
-        auto window = gaunlet::Core::Window::getCurrentInstance();
-
-        m_framebuffer = gaunlet::Core::CreateRef<gaunlet::Graphics::Framebuffer>(std::initializer_list<gaunlet::Graphics::FramebufferAttachmentSpec>{
-            {gaunlet::Core::FramebufferAttachmentType::Color, gaunlet::Graphics::FramebufferDataFormat::RGBA_Color, glm::vec4(0.1f, 0.1f, 0.1f, 1)},
-            {gaunlet::Core::FramebufferAttachmentType::Color, gaunlet::Graphics::FramebufferDataFormat::R_Integer, -1},
-            {gaunlet::Core::FramebufferAttachmentType::Color, gaunlet::Graphics::FramebufferDataFormat::R_Integer, -1},
-            {gaunlet::Core::FramebufferAttachmentType::Color, gaunlet::Graphics::FramebufferDataFormat::RGB_Float, glm::vec3(0.0f, 0.0f, 0.0f)},
-            {gaunlet::Core::FramebufferAttachmentType::DepthStencil, gaunlet::Graphics::FramebufferDataFormat::DepthStencil}
-        }, window->getViewportWidth() * window->getDPI(), window->getViewportHeight() * window->getDPI());
+        prepareFramebuffer();
 
         addExtension<gaunlet::Prefab::RenderPipelineExtensions::EntitySelectionExtension>(gaunlet::Core::CreateRef<gaunlet::Prefab::RenderPipelineExtensions::EntitySelectionExtension>(
             m_framebuffer,
@@ -197,6 +188,53 @@ namespace terramorph::Core {
 
         m_skyboxRenderer.getShaders().get("skybox")->linkUniformBuffer(m_scenePropertiesUniformBuffer);
         m_terrainRenderer.getShaders().get("plane-faces")->linkUniformBuffer(m_scenePropertiesUniformBuffer);
+
+    }
+
+    void TerrainRenderPipeline::prepareFramebuffer() {
+
+        auto window = gaunlet::Core::Window::getCurrentInstance();
+
+        m_framebuffer = gaunlet::Core::CreateRef<gaunlet::Graphics::Framebuffer>(
+            window->getViewportWidth() * window->getDPI(),
+            window->getViewportHeight() * window->getDPI()
+        );
+
+        // The render target
+        m_framebuffer->addColorAttachment<glm::vec4>(
+            gaunlet::Graphics::ColorAttachmentSpec::Channels::CHANNELS_4,
+            gaunlet::Graphics::ColorAttachmentSpec::Type::TYPE_UNI,
+            gaunlet::Graphics::ColorAttachmentSpec::Size::SIZE_8,
+            glm::vec4(0.0f, 0.0f, 0.0f, 1)
+        );
+
+        // For scene entity ids
+        m_framebuffer->addColorAttachment<int>(
+            gaunlet::Graphics::BaseColorAttachmentSpec::Channels::CHANNELS_1,
+            gaunlet::Graphics::BaseColorAttachmentSpec::Type::TYPE_SI,
+            gaunlet::Graphics::BaseColorAttachmentSpec::Size::SIZE_32,
+            -1
+        );
+
+        // For UI entity ids
+        m_framebuffer->addColorAttachment<int>(
+            gaunlet::Graphics::BaseColorAttachmentSpec::Channels::CHANNELS_1,
+            gaunlet::Graphics::BaseColorAttachmentSpec::Type::TYPE_SI,
+            gaunlet::Graphics::BaseColorAttachmentSpec::Size::SIZE_32,
+            -1
+        );
+
+        // For the terrain location
+        m_framebuffer->addColorAttachment<glm::vec3>(
+            gaunlet::Graphics::BaseColorAttachmentSpec::Channels::CHANNELS_3,
+            gaunlet::Graphics::BaseColorAttachmentSpec::Type::TYPE_UNI,
+            gaunlet::Graphics::BaseColorAttachmentSpec::Size::SIZE_16,
+            glm::vec3(0.0f, 0.0f, 0.0f)
+        );
+
+        m_framebuffer->setDepthStencilAttachment(1.0f, 0);
+
+        m_framebuffer->recreate();
 
     }
 

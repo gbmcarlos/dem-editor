@@ -45,6 +45,7 @@ namespace terramorph::Core {
     private:
 
         void prepareShaders(unsigned int uniformBufferBindingPointOffset);
+        void prepareFramebuffer();
         gaunlet::Core::Ref<gaunlet::Scene::DirectionalLightComponent> m_directionalLight = nullptr;
         gaunlet::Core::Ref<gaunlet::Scene::SkyboxComponent> m_skybox = nullptr;
         const char* m_terrainEntityName = nullptr;

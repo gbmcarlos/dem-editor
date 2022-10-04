@@ -12,9 +12,18 @@ namespace terramorph::Sculpting {
 
         ProceduralRadialStamp() {
 
-            m_framebuffer = gaunlet::Core::CreateRef<gaunlet::Graphics::Framebuffer>(std::initializer_list<gaunlet::Graphics::FramebufferAttachmentSpec>{
-                {gaunlet::Core::FramebufferAttachmentType::Color, gaunlet::Graphics::FramebufferDataFormat::RGB_Float, glm::vec3(0, 0, 0)}
-            }, 200.0f, 200.0f);
+            m_framebuffer = gaunlet::Core::CreateRef<gaunlet::Graphics::Framebuffer>(
+                200.0f, 200.0f
+            );
+
+            m_framebuffer->addColorAttachment<glm::vec3>(
+                gaunlet::Graphics::ColorAttachmentSpec::Channels::CHANNELS_3,
+                gaunlet::Graphics::ColorAttachmentSpec::Type::TYPE_SNI,
+                gaunlet::Graphics::ColorAttachmentSpec::Size::SIZE_16,
+                glm::vec3(0.0f, 0.0f, 0.0f)
+            );
+
+            m_framebuffer->recreate();
 
             prepareShaders();
             renderStamp();
