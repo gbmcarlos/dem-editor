@@ -18,7 +18,7 @@ void main() {
 
     float originalHeight = texture(heightmap, v_heightmapTextureCoordinates).x;
     float stampHeight = texture(stamp, v_stampTextureCoordinates).x;
-    float deformationFactor = (stampHeight - 0.5f) * 2.0f; // In the stamp, black (0) meand own and white (1) means up
+    float deformationFactor = (stampHeight - 0.5f) * 2.0f; // In the stamp, black (0) means down and white (1) means up
     deformationFactor = deformationFactor * u_timeStep * u_strength;
     o_height = originalHeight + deformationFactor;
 

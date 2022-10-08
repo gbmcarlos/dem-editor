@@ -84,8 +84,13 @@ namespace terramorph::Core {
 
         void onGuiRender() override {
 
+            ImGui::SliderFloat("Stamp Size", &m_stampSize, 0.001f, 0.5f);
+            ImGui::SliderFloat("DeformationStrength", &m_strength, 0.0f, 1.0f);
+
             if (m_activeBrushId) {
-                getActiveBrush()->onGuiRender();
+                if (ImGui::CollapsingHeader("Brush properties")) {
+                    getActiveBrush()->onGuiRender();
+                }
             }
 
         }
