@@ -48,23 +48,26 @@ namespace terramorph::Sculpting {
                 if (ImGui::Button("Exit")) {
                     m_editing = false;
                 }
-
-                ImGui::SliderFloat("Min Value", &m_minValue, 0.0f, 1.0f);
-                ImGui::SliderFloat("Max Value", &m_maxValue, 0.0f, 1.0f);
-                ImGui::SliderFloat("Step Min", &m_stepMin, 0.0f, 1.0f);
-                ImGui::SliderFloat("Step Max", &m_stepMax, 0.0f, 1.0f);
-
-                ImGui::Image(
-                    (void *)(intptr_t)m_framebuffer->getColorAttachment(0)->getRendererId(),
-                    ImVec2(200, 200),
-                    ImVec2(0, 1), ImVec2(1, 0)
-                );
-
             } else {
-                if (ImGui::Button("Edit")) {
+                if (ImGui::Button("Edit Brush")) {
                     m_editing = true;
                 }
             }
+
+            ImGui::BeginDisabled(!m_editing);
+
+            ImGui::SliderFloat("Min Value", &m_minValue, 0.0f, 1.0f);
+            ImGui::SliderFloat("Max Value", &m_maxValue, 0.0f, 1.0f);
+            ImGui::SliderFloat("Step Min", &m_stepMin, 0.0f, 1.0f);
+            ImGui::SliderFloat("Step Max", &m_stepMax, 0.0f, 1.0f);
+
+            ImGui::EndDisabled();
+
+            ImGui::Image(
+                (void *)(intptr_t)m_framebuffer->getColorAttachment(0)->getRendererId(),
+                ImVec2(200, 200),
+                ImVec2(0, 1), ImVec2(1, 0)
+            );
 
         }
 
