@@ -44,13 +44,15 @@ struct CameraFrustum {
 
 layout (std140) uniform TerrainProperties {
     CameraFrustum cameraFrustum;
-    float triangleSize;
+    float terrainWidth;
+    float terrainDepth;
     float maxHeight;
-    vec2 stampOrigin;
-    float stampSize;
+    float triangleSize;
+    float heightmapResolution;
     int entityId;
-    float terrainSize;
-    float heightmapSize;
+    vec2 stampUvOrigin;
+    float stampUvWidth;
+    float stampUvHeight;
 };
 
 // Vertex attributes

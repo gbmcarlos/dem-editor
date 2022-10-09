@@ -44,13 +44,15 @@ struct CameraFrustum {
 
 layout (std140) uniform TerrainProperties {
     CameraFrustum cameraFrustum;
-    float triangleSize;
+    float terrainWidth;
+    float terrainDepth;
     float maxHeight;
-    vec2 stampOrigin;
-    float stampSize;
+    float triangleSize;
+    float heightmapResolution;
     int entityId;
-    float terrainSize;
-    float heightmapSize;
+    vec2 stampUvOrigin;
+    float stampUvWidth;
+    float stampUvHeight;
 };
 
 // Inputs
@@ -67,6 +69,9 @@ layout (location = 2) out vec3 o_terrainPosition;
 uniform sampler2D heightmap;
 uniform sampler2D brushStamp;
 
+bool withinStamp();
+vec2 getStampTextureCoordinates();
+
 vec4 getDirectionalLightColor(
     vec3 color, vec3 direction,
     float ambientIntensity, float diffuseIntensity,
@@ -75,35 +80,47 @@ vec4 getDirectionalLightColor(
 
 void main() {
 
-    vec4 textureColor = texture(heightmap, te_textureCoordinates);
+    float height = texture(heightmap, te_textureCoordinates).x;
     vec4 directionalLightColor = getDirectionalLightColor(directionalLight.color, directionalLight.direction, directionalLight.ambientIntensity, directionalLight.diffuseIntensity, te_normal);
-    float halfSize = stampSize/2;
 
     o_color = vec4(0.2f, 0.5f, 0.8f, 1.0f) * directionalLightColor;
-    float stampLeft = (stampOrigin.x - halfSize);
-    float stampRight = (stampOrigin.x + halfSize);
-    float stampBottom = (stampOrigin.y - halfSize);
-    float stampTop = (stampOrigin.y + halfSize);
 
-    if (stampSize > 0.0f &&
-        te_textureCoordinates.x > stampLeft
-        && te_textureCoordinates.x < stampRight
-        && te_textureCoordinates.y > stampBottom
-        && te_textureCoordinates.y < stampTop
-    ) {
-        vec2 stampTextureCoordinates = vec2(
-            (te_textureCoordinates.x - stampLeft) / stampSize,
-            (te_textureCoordinates.y - stampBottom) / stampSize
-        );
-        vec4 stampColor = texture(brushStamp, stampTextureCoordinates);
+    if (withinStamp()) {
+        vec4 stampColor = texture(brushStamp, getStampTextureCoordinates());
         o_color += stampColor;
     }
 
     o_entityId = entityId;
-    o_terrainPosition = vec3(te_textureCoordinates.x, textureColor.y, te_textureCoordinates.y);
+    o_terrainPosition = vec3(te_textureCoordinates.x, height, te_textureCoordinates.y);
 
 }
 
+bool withinStamp() {
+
+    float stampLeft = (stampUvOrigin.x - (stampUvWidth/2));
+    float stampRight = (stampUvOrigin.x + (stampUvWidth/2));
+    float stampBottom = (stampUvOrigin.y - (stampUvHeight/2));
+    float stampTop = (stampUvOrigin.y + (stampUvHeight/2));
+
+    return stampUvWidth > 0.0f && stampUvHeight > 0.0f
+        && te_textureCoordinates.x > stampLeft
+        && te_textureCoordinates.x < stampRight
+        && te_textureCoordinates.y > stampBottom
+        && te_textureCoordinates.y < stampTop;
+
+}
+
+vec2 getStampTextureCoordinates() {
+
+    float stampLeft = (stampUvOrigin.x - (stampUvWidth/2));
+    float stampBottom = (stampUvOrigin.y - (stampUvHeight/2));
+
+    return vec2(
+        (te_textureCoordinates.x - stampLeft) / stampUvWidth,
+        (te_textureCoordinates.y - stampBottom) / stampUvHeight
+    );
+
+}
 
 vec4 getDirectionalLightColor(vec3 color, vec3 direction, float ambientIntensity, float diffuseIntensity, vec3 normal) {
 

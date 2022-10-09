@@ -2,11 +2,11 @@
 
 namespace terramorph::Core {
 
-    std::vector<PlaneQuad> QuadTreePatch::compute(float planeSize, float targetResolution, float resolutionSlope, const glm::vec3& cameraPosition, const gaunlet::Scene::Frustum& cameraFrustum) {
+    std::vector<PlaneQuad> QuadTreePatch::compute(float planeWidth, float planeHeight, float targetResolution, float resolutionSlope, const glm::vec3& cameraPosition, const gaunlet::Scene::Frustum& cameraFrustum) {
 
-        Context context(planeSize, targetResolution, resolutionSlope, cameraPosition, cameraFrustum);
+        Context context(planeWidth, planeHeight, targetResolution, resolutionSlope, cameraPosition, cameraFrustum);
 
-        auto rootNode = gaunlet::Core::CreateRef<QuadTreePatch>(nullptr, PatchPosition::Root, context, glm::vec3(0, 0, 0), planeSize);
+        auto rootNode = gaunlet::Core::CreateRef<QuadTreePatch>(nullptr, PatchPosition::Root, context, glm::vec3(0, 0, 0), planeWidth, planeHeight);
         rootNode->process();
 
         for (auto& quad : context.m_quads) {
@@ -19,12 +19,10 @@ namespace terramorph::Core {
 
     void QuadTreePatch::computeDimensions() {
 
-        float halfSize = m_size/2;
-
-        m_leftEdge = m_origin.x - halfSize;
-        m_rightEdge = m_origin.x + halfSize;
-        m_bottomEdge = m_origin.z + halfSize; // Positive, because this is the Z axis
-        m_topEdge = m_origin.z - halfSize; // Negative, because this is the Z axis
+        m_leftEdge = m_origin.x - (m_width / 2);
+        m_rightEdge = m_origin.x + (m_width / 2);
+        m_bottomEdge = m_origin.z + (m_height / 2); // Positive, because this is the Z axis
+        m_topEdge = m_origin.z - (m_height / 2); // Negative, because this is the Z axis
 
     }
 
@@ -61,7 +59,7 @@ namespace terramorph::Core {
         // Calculate the required resolution based on the distance to the camera
         float relativeResolution = getRelativeResolution(distance);
 
-        return m_size > relativeResolution;
+        return m_width > relativeResolution || m_height > relativeResolution;
 
     }
 
@@ -77,22 +75,19 @@ namespace terramorph::Core {
     // Add 4 children to the node, each half the size
     void QuadTreePatch::subdivide() {
 
-        float halfSize = m_size/2;
-        float quarterSize = m_size/4;
-
-        auto leftBottomPatch = gaunlet::Core::CreateRef<QuadTreePatch>(this, PatchPosition::LeftBottom, m_context, glm::vec3(m_origin.x - quarterSize, 0, m_origin.z + quarterSize), halfSize);
+        auto leftBottomPatch = gaunlet::Core::CreateRef<QuadTreePatch>(this, PatchPosition::LeftBottom, m_context, glm::vec3(m_origin.x - (m_width/4), 0, m_origin.z + (m_height/4)), m_width/2, m_height/2);
         m_children.emplace_back(leftBottomPatch);
         leftBottomPatch->process();
 
-        auto rightBottomPatch = gaunlet::Core::CreateRef<QuadTreePatch>(this, PatchPosition::RightBottom, m_context, glm::vec3(m_origin.x + quarterSize, 0, m_origin.z + quarterSize), halfSize);
+        auto rightBottomPatch = gaunlet::Core::CreateRef<QuadTreePatch>(this, PatchPosition::RightBottom, m_context, glm::vec3(m_origin.x + (m_width/4), 0, m_origin.z + (m_height/4)), m_width/2, m_height/2);
         m_children.emplace_back(rightBottomPatch);
         rightBottomPatch->process();
 
-        auto rightTopPatch = gaunlet::Core::CreateRef<QuadTreePatch>(this, PatchPosition::RightTop, m_context, glm::vec3(m_origin.x + quarterSize, 0, m_origin.z - quarterSize), halfSize);
+        auto rightTopPatch = gaunlet::Core::CreateRef<QuadTreePatch>(this, PatchPosition::RightTop, m_context, glm::vec3(m_origin.x + (m_width/4), 0, m_origin.z - (m_height/4)), m_width/2, m_height/2);
         m_children.emplace_back(rightTopPatch);
         rightTopPatch->process();
 
-        auto leftTopPatch = gaunlet::Core::CreateRef<QuadTreePatch>(this, PatchPosition::LeftTop, m_context, glm::vec3(m_origin.x - quarterSize, 0, m_origin.z - quarterSize), halfSize);
+        auto leftTopPatch = gaunlet::Core::CreateRef<QuadTreePatch>(this, PatchPosition::LeftTop, m_context, glm::vec3(m_origin.x - (m_width/4), 0, m_origin.z - (m_height/4)), m_width/2, m_height/2);
         m_children.emplace_back(leftTopPatch);
         leftTopPatch->process();
 
@@ -100,13 +95,13 @@ namespace terramorph::Core {
 
     void QuadTreePatch::createContent() {
 
-        float planeLeft = -m_context.m_planeSize/2;
-        float planeBottom = m_context.m_planeSize/2; // Positive, because this is the Z axis
+        float planeLeft = -m_context.m_planeWidth / 2;
+        float planeBottom = m_context.m_planeHeight / 2; // Positive, because this is the Z axis
 
-        float patchUVLeft = planeLeft == m_leftEdge ? 0 : ((m_leftEdge - planeLeft) / m_context.m_planeSize); // If the patch is on the left edge of the plane, avoid dividing by 0, U is 0
-        float patchUVRight = (m_rightEdge - planeLeft) / m_context.m_planeSize;
-        float patchUVBottom = planeBottom == m_bottomEdge ? 0 : -((m_bottomEdge - planeBottom) / m_context.m_planeSize); // Same as with planeLeft, avoid dividing by 0, V is 0
-        float patchUVTop = -(m_topEdge - planeBottom) / m_context.m_planeSize;
+        float patchUVLeft = planeLeft == m_leftEdge ? 0 : ((m_leftEdge - planeLeft) / m_context.m_planeWidth); // If the patch is on the left edge of the plane, avoid dividing by 0, U is 0
+        float patchUVRight = (m_rightEdge - planeLeft) / m_context.m_planeWidth;
+        float patchUVBottom = planeBottom == m_bottomEdge ? 0 : -((m_bottomEdge - planeBottom) / m_context.m_planeHeight); // Same as with planeLeft, avoid dividing by 0, V is 0
+        float patchUVTop = -(m_topEdge - planeBottom) / m_context.m_planeHeight;
 
         m_context.m_quads.push_back({
             {
@@ -126,22 +121,22 @@ namespace terramorph::Core {
 
         auto leftNeighbour = findHorizontalNeighbour(HorizontalSide::Left);
         if (leftNeighbour != nullptr) {
-            quad.m_leftSizeRatio = leftNeighbour->m_size / m_size;
+            quad.m_leftSizeRatio = leftNeighbour->m_height / m_height;
         }
 
         auto bottomNeighbour = findVerticalNeighbour(VerticalSide::Bottom);
         if (bottomNeighbour != nullptr) {
-            quad.m_bottomSizeRatio = bottomNeighbour->m_size / m_size;
+            quad.m_bottomSizeRatio = bottomNeighbour->m_width / m_width;
         }
 
         auto rightNeighbour = findHorizontalNeighbour(HorizontalSide::Right);
         if (rightNeighbour != nullptr) {
-            quad.m_rightSizeRatio = rightNeighbour->m_size / m_size;
+            quad.m_rightSizeRatio = rightNeighbour->m_height / m_height;
         }
 
         auto topNeighbour = findVerticalNeighbour(VerticalSide::Top);
         if (topNeighbour != nullptr) {
-            quad.m_topSizeRatio = topNeighbour->m_size / m_size;
+            quad.m_topSizeRatio = topNeighbour->m_width / m_width;
         }
 
     }

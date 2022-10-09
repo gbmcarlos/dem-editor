@@ -13,8 +13,9 @@ out vec3 v_normal;
 flat out uint v_entityIndex;
 
 // Uniforms
-uniform vec2 u_stampOrigin;
-uniform float u_stampSize;
+uniform vec2 u_stampUVOrigin;
+uniform float u_stampUVWidth;
+uniform float u_stampUVHeight;
 
 vec2 computeHeightmapTextureCoordinates();
 
@@ -33,10 +34,8 @@ void main() {
 
 vec2 computeHeightmapTextureCoordinates() {
 
-    float halfSize = (u_stampSize/2);
-
-    float u = a_textureCoordinates.x == 0 ? (u_stampOrigin.x - halfSize) : (u_stampOrigin.x + halfSize);
-    float v = a_textureCoordinates.y == 0 ? (u_stampOrigin.y - halfSize) : (u_stampOrigin.y + halfSize);
+    float u = a_textureCoordinates.x == 0 ? (u_stampUVOrigin.x - (u_stampUVWidth/2)) : (u_stampUVOrigin.x + (u_stampUVWidth/2));
+    float v = a_textureCoordinates.y == 0 ? (u_stampUVOrigin.y - (u_stampUVHeight/2)) : (u_stampUVOrigin.y + (u_stampUVHeight/2));
 
     return vec2(u, v);
 

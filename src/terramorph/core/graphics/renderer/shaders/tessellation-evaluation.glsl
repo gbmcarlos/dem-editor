@@ -46,13 +46,15 @@ struct CameraFrustum {
 
 layout (std140) uniform TerrainProperties {
     CameraFrustum cameraFrustum;
-    float triangleSize;
+    float terrainWidth;
+    float terrainDepth;
     float maxHeight;
-    vec2 stampOrigin;
-    float stampSize;
+    float triangleSize;
+    float heightmapResolution;
     int entityId;
-    float terrainSize;
-    float heightmapSize;
+    vec2 stampUvOrigin;
+    float stampUvWidth;
+    float stampUvHeight;
 };
 
 in vec2 tc_textureCoordinates[];
@@ -92,18 +94,19 @@ vec2 interpolateTextureCoordinates() {
 
 vec3 computeNormal() {
 
-    float texelSize = 1.0f/heightmapSize;
+    float texelWidth = 1.0f / (terrainWidth * heightmapResolution);
+    float texelHeight = 1.0f / (terrainDepth * heightmapResolution);
 
     vec4 heights;
-    heights.x = texture(heightmap, te_textureCoordinates + vec2(0, -1.0f * texelSize)).x * maxHeight; // down
-    heights.y = texture(heightmap, te_textureCoordinates + vec2(-1.0f * texelSize, 0)).x * maxHeight; // left
-    heights.z = texture(heightmap, te_textureCoordinates + vec2(1.0f * texelSize, 0)).x * maxHeight; // right
-    heights.w = texture(heightmap, te_textureCoordinates + vec2(0, 1.0f * texelSize)).x * maxHeight; // up
+    heights.x = texture(heightmap, te_textureCoordinates + vec2(0, -1.0f * texelHeight)).x * maxHeight; // down
+    heights.y = texture(heightmap, te_textureCoordinates + vec2(-1.0f * texelWidth, 0)).x * maxHeight; // left
+    heights.z = texture(heightmap, te_textureCoordinates + vec2(1.0f * texelWidth, 0)).x * maxHeight; // right
+    heights.w = texture(heightmap, te_textureCoordinates + vec2(0, 1.0f * texelHeight)).x * maxHeight; // up
 
     vec3 normal;
     normal.z = heights.w - heights.z; // up - down, vertical
     normal.x = heights.z - heights.y; // right - left, hoorizontal
-    normal.y = texelSize * terrainSize; // pixel space -> uv space -> world space
+    normal.y = texelWidth * terrainWidth; // pixel space -> uv space -> world space
 
     return normalize(normal);
 

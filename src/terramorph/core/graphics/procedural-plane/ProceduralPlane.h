@@ -26,10 +26,11 @@ namespace terramorph::Core {
     // This is just a collection of data that is passed around
     struct Context {
 
-        Context(float planeSize, float targetResolution, float resolutionSlope, const glm::vec3& cameraPosition, const gaunlet::Scene::Frustum& cameraFrustum)
-            : m_planeSize(planeSize), m_targetResolution(targetResolution), m_resolutionSlope(resolutionSlope), m_cameraPosition(cameraPosition), m_cameraFrustum(cameraFrustum) {}
+        Context(float planeWidth, float planeHeight, float targetResolution, float resolutionSlope, const glm::vec3& cameraPosition, const gaunlet::Scene::Frustum& cameraFrustum)
+            : m_planeWidth(planeWidth), m_planeHeight(planeHeight), m_targetResolution(targetResolution), m_resolutionSlope(resolutionSlope), m_cameraPosition(cameraPosition), m_cameraFrustum(cameraFrustum) {}
 
-        float m_planeSize;
+        float m_planeWidth;
+        float m_planeHeight;
         float m_targetResolution;
         float m_resolutionSlope;
         glm::vec3 m_cameraPosition;
@@ -57,12 +58,12 @@ namespace terramorph::Core {
 
     public:
 
-        static std::vector<PlaneQuad> compute(float planeSize, float targetResolution, float resolutionSlope, const glm::vec3& cameraPosition, const gaunlet::Scene::Frustum& cameraFrustum);
-
-        QuadTreePatch(QuadTreePatch* parent, PatchPosition position, Context& context, glm::vec3 origin, float size)
-            : m_parent(parent), m_position(position), m_context(context), m_origin(origin), m_size(size) {
+        QuadTreePatch(QuadTreePatch* parent, PatchPosition position, Context& context, glm::vec3 origin, float width, float height)
+            : m_parent(parent), m_position(position), m_context(context), m_origin(origin), m_width(width), m_height(height) {
             computeDimensions();
         }
+
+        static std::vector<PlaneQuad> compute(float planeWidth, float planeHeight, float targetResolution, float resolutionSlope, const glm::vec3& cameraPosition, const gaunlet::Scene::Frustum& cameraFrustum);
 
     protected:
 
@@ -71,7 +72,8 @@ namespace terramorph::Core {
         Context& m_context;
         std::vector<gaunlet::Core::Ref<QuadTreePatch>> m_children = {};
         glm::vec3 m_origin;
-        float m_size;
+        float m_width;
+        float m_height;
         float m_leftEdge;
         float m_rightEdge;
         float m_bottomEdge;

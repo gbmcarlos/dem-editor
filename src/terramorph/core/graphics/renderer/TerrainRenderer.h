@@ -3,9 +3,8 @@
 #include "gaunlet/scene/renderer/ObjectRenderer.h"
 #include "gaunlet/prefab/object-renderers/model-renderer/ModelRenderer.h"
 #include "gaunlet/graphics/render-pass/SimpleRenderPass.h"
-#include "terramorph/core/graphics/terrain-components/PlaneComponent.h"
+#include "terramorph/core/graphics/terrain-components/TerrainComponent.h"
 #include "terramorph/core/graphics/terrain-components/StampComponent.h"
-#include "terramorph/core/graphics/terrain-components/HeightmapComponent.h"
 #include "gaunlet/scene/camera/Camera.h"
 
 #include "gaunlet/pch.h"
@@ -43,14 +42,18 @@ namespace terramorph::Core {
     };
 
     struct TerrainProperties {
+
         CameraFrustum m_cameraFrustum;
-        float m_triangleSize;
+        float m_terrainWidth;
+        float m_terrainDepth;
         float m_maxHeight;
-        glm::vec2 m_stampOrigin = {0, 0};
-        float m_brushStampSize = 0;
+        float m_triangleSize;
+        float m_heightmapResolution;
         int m_entityId;
-        float m_terrainSize;
-        float m_heightmapSize = 1.0f;
+        glm::vec2 m_stampUvOrigin = {0, 0};
+        float m_stampUvWidth = 0;
+        float m_stampUvHeight = 0;
+
     };
 
     class TerrainRenderer {
@@ -60,7 +63,7 @@ namespace terramorph::Core {
         TerrainRenderer(unsigned int quadPropertySetsUniformBufferBindingPoint, unsigned int terrainPropertiesUniformBufferBindingPoint)
             : m_renderer({100000, 600000, 10, 1000}) {
 
-            // Create a uniform buffer that will contain the properties of every object, and will be linked to the shader
+            // Create a uniform buffer that will contain the properties of every quad
             m_quadPropertySetsUniformBuffer = gaunlet::Core::CreateRef<gaunlet::Graphics::UniformBuffer>(
                 "EntityPropertySets",
                 quadPropertySetsUniformBufferBindingPoint,
@@ -79,16 +82,29 @@ namespace terramorph::Core {
 
         void render(gaunlet::Scene::Entity entity, const gaunlet::Core::Ref<gaunlet::Graphics::Shader>& shader) {
 
-            auto terrainProperties = getTerrainProperties(entity);
+            auto& terrainComponent = entity.getComponent<TerrainComponent>();
+            terrainComponent.getHeightmap()->activate(1);
 
-            auto& planeComponent = entity.getComponent<PlaneComponent>();
+            auto terrainProperties = getTerrainProperties(terrainComponent);
+            terrainProperties.m_entityId = entity.getId();
+
+            // If there is a stamp, take the information about it, and activate its texture
+            if (entity.hasComponent<StampComponent>()) {
+
+                auto& stampComponent = entity.getComponent<StampComponent>();
+
+                terrainProperties.m_stampUvOrigin = terrainComponent.worldLocation2UVCoordinates({stampComponent.m_origin.x, stampComponent.m_origin.y});
+                terrainProperties.m_stampUvWidth = stampComponent.m_width / terrainComponent.getMeshWidth();
+                terrainProperties.m_stampUvHeight = stampComponent.m_height / terrainComponent.getMeshDepth();
+                stampComponent.m_stampTexture->activate(2);
+            }
 
             m_terrainPropertiesUniformBuffer->setData(
                 (const void*) &terrainProperties,
                 sizeof(TerrainProperties)
             );
 
-            for (auto& quad : planeComponent.getContent()) {
+            for (auto& quad : terrainComponent.getMeshContent()) {
 
                 auto planeQuadEntityProperties = getQuadProperties(quad);
 
@@ -121,11 +137,9 @@ namespace terramorph::Core {
 
     protected:
 
-        TerrainProperties getTerrainProperties(gaunlet::Scene::Entity entity) {
+        TerrainProperties getTerrainProperties(TerrainComponent& terrainComponent) {
 
-            auto& planeComponent = entity.getComponent<PlaneComponent>();
-
-            gaunlet::Scene::Frustum originalFrustum = planeComponent.m_camera->getFrustum();
+            gaunlet::Scene::Frustum originalFrustum = terrainComponent.getCamera()->getFrustum();
             CameraFrustum cameraFrustum{
                 {originalFrustum.m_nearPlane.m_normal, originalFrustum.m_nearPlane.m_distance},
                 {originalFrustum.m_farPlane.m_normal, originalFrustum.m_farPlane.m_distance},
@@ -137,29 +151,12 @@ namespace terramorph::Core {
 
             TerrainProperties terrainProperties{
                 cameraFrustum,
-                planeComponent.m_triangleSize,
-                planeComponent.m_maxHeight
+                terrainComponent.getMeshWidth(),
+                terrainComponent.getMeshDepth(),
+                terrainComponent.m_maxHeight,
+                terrainComponent.m_triangleSize,
+                (float) terrainComponent.getHeightmapResolution()
             };
-
-            if (entity.hasComponent<StampComponent>()) {
-
-                auto& stampComponent = entity.getComponent<StampComponent>();
-
-                terrainProperties.m_stampOrigin = stampComponent.m_uvOrigin;
-                terrainProperties.m_brushStampSize = stampComponent.m_uvSize;
-
-                stampComponent.m_stampTexture->activate(2);
-
-            }
-
-            if (entity.hasComponent<HeightmapComponent>()) {
-                auto& heightmapComponent = entity.getComponent<HeightmapComponent>();
-                heightmapComponent.getHeightmap()->activate(1);
-                terrainProperties.m_heightmapSize = (float) heightmapComponent.getSize();
-            }
-
-            terrainProperties.m_entityId = entity.getId();
-            terrainProperties.m_terrainSize = planeComponent.m_size;
 
             return terrainProperties;
 

@@ -3,7 +3,6 @@
 #include "gaunlet/core/event/events/MouseEvent.h"
 #include "terramorph/core/tools/TerrainSelectionTool.h"
 #include "terramorph/core/tools/terrain-deformation/stamp-deformation/DeformationBrush.h"
-#include "terramorph/core/graphics/terrain-components/HeightmapComponent.h"
 #include "terramorph/core/graphics/terrain-components/StampComponent.h"
 
 namespace terramorph::Core {
@@ -12,7 +11,8 @@ namespace terramorph::Core {
 
     public:
 
-        StampDeformationTool() {
+        StampDeformationTool(float defaultStampSize = 0.05f)
+            : m_stampSize(defaultStampSize) {
             loadShaders();
         }
 
@@ -60,23 +60,27 @@ namespace terramorph::Core {
                 return;
             }
 
-            auto terrain = mousePickTerrain();
-            if (!terrain) {
+            mousePickTerrain();
+            if (!m_terrain) {
                 return;
             }
 
-            auto& heightmap = terrain.getComponent<HeightmapComponent>();
-
             if (m_activeBrushId != nullptr) {
 
+                auto& terrainComponent = m_terrain.getComponent<TerrainComponent>();
+                auto uvOrigin = terrainComponent.worldLocation2UVCoordinates({m_terrainLocation.x, m_terrainLocation.z});
+                auto uvWidth = m_stampSize / terrainComponent.getMeshWidth();
+                auto uvHeight = m_stampSize / terrainComponent.getMeshDepth();
+
                 auto& shader = m_shaderLibrary.get("main");
-                shader->setUniform2f("u_stampOrigin", {m_terrainLocation.x, m_terrainLocation.z});
-                shader->setUniform1f("u_stampSize", m_stampSize);
+                shader->setUniform2f("u_stampUVOrigin", uvOrigin);
+                shader->setUniform1f("u_stampUVWidth", uvWidth);
+                shader->setUniform1f("u_stampUVHeight", uvHeight);
                 shader->setUniform1f("u_timeStep", (float) timeStep);
                 shader->setUniform1f("u_strength", m_strength);
 
                 getActiveBrush()->getBrushStampTexture()->activate(1);
-                heightmap.updateQuad(shader, {m_terrainLocation.x, m_terrainLocation.z}, m_stampSize);
+                terrainComponent.updateHeightmap(shader, uvOrigin, uvWidth, uvHeight);
 
             }
 
@@ -84,7 +88,8 @@ namespace terramorph::Core {
 
         void onGuiRender() override {
 
-            ImGui::SliderFloat("Stamp Size", &m_stampSize, 0.001f, 0.5f);
+            ImGui::Text("Terrain Location: (%f %f %f)", m_terrainLocation.x, m_terrainLocation.y, m_terrainLocation.z);
+            ImGui::SliderFloat("Stamp Size", &m_stampSize, 1.0f, 50.0f);
             ImGui::SliderFloat("DeformationStrength", &m_strength, 0.0f, 1.0f);
 
             if (m_activeBrushId) {
@@ -97,12 +102,10 @@ namespace terramorph::Core {
 
     protected:
 
-        gaunlet::Scene::Entity m_terrain;
-        glm::vec3 m_terrainLocation;
         const char* m_activeBrushId = nullptr;
         std::unordered_map<const char*, gaunlet::Core::Ref<DeformationBrush>> m_brushes;
         gaunlet::Graphics::ShaderLibrary m_shaderLibrary;
-        float m_stampSize = 0.05;
+        float m_stampSize = 5.0f;
         float m_strength = 1.0f;
 
         bool onCursorMoveEvent(gaunlet::Core::CursorMoveEvent& event) {
@@ -113,20 +116,23 @@ namespace terramorph::Core {
 
             if (isHoveringTerrain()) {
 
-                m_terrain = mousePickTerrain(); // Remember the terrain
-                m_terrainLocation = mousePickTerrainLocation(m_renderPanel);
+                mousePickTerrainLocation();
 
                 // If there isn't a stamp yet, add it
                 if (!m_terrain.hasComponent<StampComponent>()) {
+
                     m_terrain.addComponent<StampComponent>(
                         glm::vec2(m_terrainLocation.x, m_terrainLocation.z),
-                        m_stampSize,
+                        m_stampSize, m_stampSize,
                         getActiveBrush()->getBrushStampTexture()
                     );
+
                 } else { // Otherwise, update it
+
                     auto& stamp = m_terrain.getComponent<StampComponent>();
-                    stamp.m_uvOrigin = {m_terrainLocation.x, m_terrainLocation.z};
+                    stamp.m_origin = {m_terrainLocation.x, m_terrainLocation.z};
                     stamp.m_stampTexture = getActiveBrush()->getBrushStampTexture();
+
                 }
 
             } else if (m_terrain && m_terrain.hasComponent<StampComponent>()) { // Remove ths stamp and forget the terrain entity

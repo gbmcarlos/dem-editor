@@ -1,8 +1,6 @@
 #pragma once
 
 #include "gaunlet/prefab/editor-tools/EntitySelectionTool.h"
-#include "terramorph/core/graphics/terrain-components/PlaneComponent.h"
-#include "terramorph/core/graphics/terrain-components/HeightmapComponent.h"
 #include "terramorph/core/graphics/render-pipeline/extensions/TerrainLocationExtension.h"
 
 namespace terramorph::Core {
@@ -18,8 +16,8 @@ namespace terramorph::Core {
                 return false;
             }
 
-            auto plane = mousePickTaggedEntity<PlaneComponent>(renderPanel, gaunlet::Prefab::RenderPipelineExtensions::EntitySelectionExtension::EntityLayer::SceneLayer);
-            if (!plane || !plane.hasComponent<HeightmapComponent>()) {
+            auto plane = mousePickTaggedEntity<TerrainComponent>(renderPanel, gaunlet::Prefab::RenderPipelineExtensions::EntitySelectionExtension::EntityLayer::SceneLayer);
+            if (!plane) {
                 return false;
             }
 
@@ -27,37 +25,45 @@ namespace terramorph::Core {
 
         }
 
-        gaunlet::Scene::Entity mousePickTerrain() {
+        void mousePickTerrain() {
 
             selectHoveredRenderPanelWithExtension<TerrainLocationExtension>();
 
             if (!m_renderPanel) {
-                return {};
+                m_terrain = {};
+                return;
             }
 
-            auto plane = mousePickTaggedEntity<PlaneComponent>(
+            m_terrain = mousePickTaggedEntity<TerrainComponent>(
                 m_renderPanel,
                 gaunlet::Prefab::RenderPipelineExtensions::EntitySelectionExtension::EntityLayer::SceneLayer
             );
 
-            if (plane && plane.hasComponent<HeightmapComponent>()) {
-                return plane;
-            }
-
-            return {};
-
         }
 
-        glm::vec3 mousePickTerrainLocation(gaunlet::Editor::RenderPanel* renderPanel) {
+        void mousePickTerrainLocation() {
 
-            unsigned int pixelPositionX = renderPanel->getMousePositionX() * gaunlet::Core::Window::getCurrentInstance()->getDPI();
-            unsigned int pixelPositionY = renderPanel->getMousePositionYInverted() * gaunlet::Core::Window::getCurrentInstance()->getDPI();
+            mousePickTerrain();
 
-            return renderPanel->getRenderPipeline()
+            if (!m_renderPanel || !m_terrain) {
+                return;
+            }
+
+            auto& terrainComponent = m_terrain.getComponent<TerrainComponent>();
+
+            unsigned int pixelPositionX = m_renderPanel->getMousePositionX() * gaunlet::Core::Window::getCurrentInstance()->getDPI();
+            unsigned int pixelPositionY = m_renderPanel->getMousePositionYInverted() * gaunlet::Core::Window::getCurrentInstance()->getDPI();
+
+            auto terrainLocation = m_renderPanel->getRenderPipeline()
                 ->getExtension<TerrainLocationExtension>()
                 ->mousePickTerrainLocation(pixelPositionX, pixelPositionY);
 
+            m_terrainLocation = terrainComponent.uvLocation2WorldCoordinates(terrainLocation);
+
         }
+
+        gaunlet::Scene::Entity m_terrain;
+        glm::vec3 m_terrainLocation;
 
     };
 

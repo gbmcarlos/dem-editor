@@ -46,13 +46,15 @@ struct CameraFrustum {
 
 layout (std140) uniform TerrainProperties {
     CameraFrustum cameraFrustum;
-    float triangleSize;
+    float terrainWidth;
+    float terrainDepth;
     float maxHeight;
-    vec2 stampOrigin;
-    float stampSize;
+    float triangleSize;
+    float heightmapResolution;
     int entityId;
-    float terrainSize;
-    float heightmapSize;
+    vec2 stampUvOrigin;
+    float stampUvWidth;
+    float stampUvHeight;
 };
 
 in vec2 v_textureCoordinates[];
@@ -141,6 +143,10 @@ void main() {
 }
 
 int getTessellationLevel(uint edgeIndex, uint position, float sizeFactor, float triangleSize) {
+
+    if (triangleSize <= 4) {
+        return 1;
+    }
 
     vec2 edgeVertexIndices = getVertexIndices(edgeIndex);
     vec4 edgeStart = gl_in[int(edgeVertexIndices.x)].gl_Position;

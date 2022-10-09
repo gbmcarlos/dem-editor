@@ -4,6 +4,7 @@ add_executable(terramorph
         # graphics
         terramorph/core/graphics/procedural-plane/ProceduralPlane.cpp
         terramorph/core/graphics/render-pipeline/TerrainRenderPipeline.cpp
+        terramorph/core/graphics/terrain-components/TerrainComponent.cpp
 )
 
 # Libraries

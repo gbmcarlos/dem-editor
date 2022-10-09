@@ -5,6 +5,7 @@
 #include "gaunlet/editor/Tags.h"
 #include "gaunlet/prefab/render-pipeline-extensions/EntitySelectionExtension.h"
 #include "terramorph/core/graphics/render-pipeline/extensions/TerrainLocationExtension.h"
+#include "terramorph/core/graphics/terrain-components/TerrainComponent.h"
 
 namespace terramorph::Core {
 
@@ -150,16 +151,16 @@ namespace terramorph::Core {
 
         auto terrainEntity = scene->getEntity(m_terrainEntityName);
 
-        if (terrainEntity.hasComponent<PlaneComponent>()) {
+        if (terrainEntity.hasComponent<TerrainComponent>()) {
 
             auto& shader = m_terrainRenderer.getShaders().get("plane-faces");
 
             if (terrainEntity.hasComponent<gaunlet::Editor::WireframeModelTag>()) {
                 gaunlet::Core::RenderCommand::setPolygonMode(gaunlet::Core::PolygonMode::Line);
-                m_terrainRenderer.render(terrainEntity,shader);
+                m_terrainRenderer.render(terrainEntity, shader);
                 gaunlet::Core::RenderCommand::setPolygonMode(gaunlet::Core::PolygonMode::Fill);
             } else {
-                m_terrainRenderer.render(terrainEntity,shader);
+                m_terrainRenderer.render(terrainEntity, shader);
             }
 
         }
