@@ -23,14 +23,12 @@ namespace terramorph::Sculpting {
                 glm::vec3(0.0f, 0.0f, 0.0f)
             );
 
-            m_framebuffer->recreate();
-
             prepareShaders();
             renderStamp();
 
         }
 
-        const gaunlet::Core::Ref<gaunlet::Graphics::Texture>& getBrushStampTexture() override {
+        const gaunlet::Core::Ref<gaunlet::Graphics::TextureImage2D>& getBrushStampTexture() override {
             return m_framebuffer->getColorAttachment(0);
         }
 

@@ -17,7 +17,7 @@ namespace terramorph::Core {
         explicit TerrainRenderPipeline(const char* terrainEntityName, gaunlet::Core::Ref<gaunlet::Scene::DirectionalLightComponent> directionalLight, gaunlet::Core::Ref<gaunlet::Scene::SkyboxComponent> skybox, unsigned int uniformBufferBindingPointOffset = 0);
         void run(const gaunlet::Core::Ref<gaunlet::Scene::Scene>& scene, const gaunlet::Core::Ref<gaunlet::Scene::Camera>& camera) override;
         void resize(unsigned int width, unsigned int height) override;
-        const gaunlet::Core::Ref<gaunlet::Graphics::Texture>& getRenderTarget() override;
+        const gaunlet::Core::Ref<gaunlet::Graphics::TextureImage2D>& getRenderTarget() override;
         static unsigned int getUniformBufferCount();
 
     protected:

@@ -8,7 +8,7 @@ namespace terramorph::Core {
 
     public:
 
-        virtual const gaunlet::Core::Ref<gaunlet::Graphics::Texture>& getBrushStampTexture() = 0;
+        virtual const gaunlet::Core::Ref<gaunlet::Graphics::TextureImage2D>& getBrushStampTexture() = 0;
         virtual void onUpdate(gaunlet::Core::TimeStep timeStep) {}
         virtual void onGuiRender() {}
 

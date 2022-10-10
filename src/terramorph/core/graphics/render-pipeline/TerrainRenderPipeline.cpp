@@ -63,7 +63,7 @@ namespace terramorph::Core {
 
     }
 
-    const gaunlet::Core::Ref<gaunlet::Graphics::Texture> &TerrainRenderPipeline::getRenderTarget() {
+    const gaunlet::Core::Ref<gaunlet::Graphics::TextureImage2D> &TerrainRenderPipeline::getRenderTarget() {
         return m_framebuffer->getColorAttachment(SceneFramebufferAttachmentIndex);
     }
 
@@ -234,8 +234,6 @@ namespace terramorph::Core {
         );
 
         m_framebuffer->setDepthStencilAttachment(1.0f, 0);
-
-        m_framebuffer->recreate();
 
     }
 

@@ -186,8 +186,6 @@ namespace terramorph::Core {
             0.0f
         );
 
-        m_heightmapFramebuffer->recreate();
-
         m_heightmapFramebuffer->clear();
 
         // Save the second attachment as the heightmap and deattach it from the framebuffer
