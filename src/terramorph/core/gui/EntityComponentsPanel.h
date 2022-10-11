@@ -23,6 +23,11 @@ namespace terramorph::Core {
         void terrainComponentProperties(TerrainComponent& terrain) {
 
             if (ImGui::CollapsingHeader("Terrain Component")) {
+                ImGui::Image(
+                    (void *)(intptr_t)terrain.getHeightmap()->getRendererId(),
+                    ImVec2(200, 200),
+                    ImVec2(0, 1), ImVec2(1, 0)
+                );
                 ImGui::DragFloat("Max Height: ", &terrain.m_maxHeight, m_sliderSpeed);
                 ImGui::DragFloat("Triangle Size: ", &terrain.m_triangleSize, m_sliderSpeed);
                 ImGui::DragFloat("Target Quad Resolution: ", &terrain.m_targetQuadResolution, m_sliderSpeed);

@@ -19,7 +19,7 @@ namespace terramorph {
 
         void onReady() override {
 
-            m_workspace = new gaunlet::Editor::Workspace();
+            m_workspace = new gaunlet::Editor::Workspace({false, false});
 
             prepareLayout();
             prepareTools();
@@ -121,6 +121,8 @@ namespace terramorph {
                 mainCamera,
                 5.0f, 0.5f // Quad subdivision
             );
+
+            m_workspace->selectSceneEntity(terrain);
 
         }
 
