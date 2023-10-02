@@ -1,26 +1,13 @@
-#include "terramorph/core/graphics/terrain-components/TerrainComponent.h"
+#include "terramorph/core/graphics/components/TerrainComponent.h"
 #include "gaunlet/core/window/CoordinatesUtils.h"
 #include "gaunlet/graphics/render-pass/SimpleRenderPass.h"
 #include "gaunlet/core/render/RenderCommand.h"
 
 namespace terramorph::Core {
 
-    TerrainComponent::TerrainComponent(float meshWidth, float meshDepth, float maxHeight, float heightmapResolution, float triangleSize, gaunlet::Core::Ref<gaunlet::Scene::PerspectiveCamera> camera, float quadTargetResolution, float quadResolutionSlope)
-        : m_meshWidth(meshWidth), m_meshDepth(meshDepth), m_maxHeight(maxHeight), m_heightmapResolution(heightmapResolution),  m_triangleSize(triangleSize), m_camera(std::move(camera)), m_targetQuadResolution(quadTargetResolution), m_quadResolutionSlope(quadResolutionSlope) {
+    TerrainComponent::TerrainComponent(float meshWidth, float meshDepth, float maxHeight, float heightmapResolution, gaunlet::Core::Ref<gaunlet::Scene::PerspectiveCamera> camera)
+        : m_meshWidth(meshWidth), m_meshDepth(meshDepth), m_maxHeight(maxHeight), m_heightmapResolution(heightmapResolution), m_camera(std::move(camera)) {
         createHeightmap();
-    }
-
-    std::vector<PlaneQuad> TerrainComponent::getMeshContent() {
-
-        return QuadTreePatch::compute(
-            m_meshWidth,
-            m_meshDepth,
-            m_targetQuadResolution,
-            std::max(m_quadResolutionSlope, 0.1f),
-            m_camera->getPosition(),
-            m_camera->getFrustum()
-        );
-
     }
 
     float TerrainComponent::getHeightmapResolution() {

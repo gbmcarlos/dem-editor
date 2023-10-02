@@ -1,13 +1,13 @@
 #pragma once
 
 #include "gaunlet/core/event/events/MouseEvent.h"
-#include "terramorph/core/tools/TerrainSelectionTool.h"
+#include "terramorph/core/tools/PlanetSelectionTool.h"
 #include "terramorph/core/tools/terrain-deformation/stamp-deformation/DeformationBrush.h"
-#include "terramorph/core/graphics/terrain-components/StampComponent.h"
+#include "terramorph/core/graphics/components/StampComponent.h"
 
 namespace terramorph::Core {
 
-    class StampDeformationTool : public TerrainSelectionTool {
+    class StampDeformationTool : public PlanetSelectionTool {
 
     public:
 
@@ -60,27 +60,25 @@ namespace terramorph::Core {
                 return;
             }
 
-            mousePickTerrain();
-            if (!m_terrain) {
+            mousePickPlanet();
+            if (!m_planet) {
                 return;
             }
 
             if (m_activeBrushId != nullptr) {
 
-                auto& terrainComponent = m_terrain.getComponent<TerrainComponent>();
-                auto uvOrigin = terrainComponent.worldLocation2UVCoordinates({m_terrainLocation.x, m_terrainLocation.z});
-                auto uvWidth = m_stampSize / terrainComponent.getMeshWidth();
-                auto uvHeight = m_stampSize / terrainComponent.getMeshDepth();
+                auto& planetComponent = m_planet.getComponent<PlanetComponent>();
+                auto& terrainComponent = m_planet.getComponent<TerrainComponent>();
 
                 auto& shader = m_shaderLibrary.get("main");
-                shader->setUniform2f("u_stampUVOrigin", uvOrigin);
-                shader->setUniform1f("u_stampUVWidth", uvWidth);
-                shader->setUniform1f("u_stampUVHeight", uvHeight);
+                shader->setUniform2f("u_stampUVOrigin", m_planetLocation);
+                shader->setUniform1f("u_stampUVWidth", m_stampSize);
+                shader->setUniform1f("u_stampUVHeight", m_stampSize);
                 shader->setUniform1f("u_timeStep", (float) timeStep);
                 shader->setUniform1f("u_strength", m_strength);
 
                 getActiveBrush()->getBrushStampTexture()->activate(1);
-                terrainComponent.updateHeightmap(shader, uvOrigin, uvWidth, uvHeight);
+                terrainComponent.updateHeightmap(shader, m_planetLocation, m_stampSize, m_stampSize);
 
             }
 
@@ -88,8 +86,15 @@ namespace terramorph::Core {
 
         void onGuiRender() override {
 
-            ImGui::Text("Terrain Location: (%f %f %f)", m_terrainLocation.x, m_terrainLocation.y, m_terrainLocation.z);
-            ImGui::SliderFloat("Stamp Size", &m_stampSize, 1.0f, 50.0f);
+            if (m_planet) {
+                auto& planetComponent = m_planet.getComponent<PlanetComponent>();
+                auto lonLat = planetComponent.planeUV2LonLat(m_planetLocation.x, m_planetLocation.y);
+                ImGui::Text("Terrain Location: (%f %f)", m_planetLocation.x, m_planetLocation.y);
+            } else {
+                ImGui::Text("Terrain Location:");
+            }
+
+            ImGui::SliderFloat("Stamp Size", &m_stampSize, 0.01f, 0.5f);
             ImGui::SliderFloat("DeformationStrength", &m_strength, 0.0f, 1.0f);
 
             if (m_activeBrushId) {
@@ -114,30 +119,31 @@ namespace terramorph::Core {
                 return true;
             }
 
-            if (isHoveringTerrain()) {
+            if (isHoveringPlanet()) {
 
-                mousePickTerrainLocation();
+                // Sets m_planet and m_planetLocation
+                mousePickPlanetLocation();
 
                 // If there isn't a stamp yet, add it
-                if (!m_terrain.hasComponent<StampComponent>()) {
+                if (!m_planet.hasComponent<StampComponent>()) {
 
-                    m_terrain.addComponent<StampComponent>(
-                        glm::vec2(m_terrainLocation.x, m_terrainLocation.z),
+                    m_planet.addComponent<StampComponent>(
+                        m_planetLocation,
                         m_stampSize, m_stampSize,
                         getActiveBrush()->getBrushStampTexture()
                     );
 
                 } else { // Otherwise, update it
 
-                    auto& stamp = m_terrain.getComponent<StampComponent>();
-                    stamp.m_origin = {m_terrainLocation.x, m_terrainLocation.z};
+                    auto& stamp = m_planet.getComponent<StampComponent>();
+                    stamp.m_origin = m_planetLocation;
                     stamp.m_stampTexture = getActiveBrush()->getBrushStampTexture();
 
                 }
 
-            } else if (m_terrain && m_terrain.hasComponent<StampComponent>()) { // Remove ths stamp and forget the terrain entity
-                m_terrain.removeComponent<StampComponent>();
-                m_terrain = {};
+            } else if (m_planet && m_planet.hasComponent<StampComponent>()) { // Remove ths stamp and forget the terrain entity
+                m_planet.removeComponent<StampComponent>();
+                m_planet = {};
             }
 
             return true;

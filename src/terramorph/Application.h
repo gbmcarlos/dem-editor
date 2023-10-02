@@ -1,10 +1,11 @@
 #pragma once
 
-#include "terramorph/core/graphics/render-pipeline/TerrainRenderPipeline.h"
 #include "terramorph/core/gui/EntityComponentsPanel.h"
+#include "terramorph/core/graphics/render-pipeline/TerrainRenderPipeline.h"
+#include "terramorph/core/graphics/components/PlanetComponent.h"
+#include "terramorph/core/graphics/components/TerrainComponent.h"
 #include "terramorph/core/tools/terrain-deformation/stamp-deformation/StampDeformationTool.h"
-#include "terramorph/core/graphics/terrain-components/TerrainComponent.h"
-#include "terramorph/core/tools/terrain-deformation/stamp-deformation/StampDeformationTool.h"
+#include "terramorph/core/tools/orbital-camera-controller/OrbitalCameraController.h"
 #include "terramorph/sculpting/stamps/procedural-radial-stamp/ProceduralRadialStamp.h"
 
 #include "pch.h"
@@ -52,13 +53,15 @@ namespace terramorph {
             m_workspace->setLayoutSpec({
                 {
                     {gaunlet::Editor::DockSpacePosition::Left, 0.2f, {"Render Panel"}},
-                    {gaunlet::Editor::DockSpacePosition::Down, 0.3f,  0, {"Entity Components"}},
-                    {gaunlet::Editor::DockSpacePosition::Down, 0.7f,  0, {"Tools Manager"}},
+                    {gaunlet::Editor::DockSpacePosition::Down, 0.3f, 0, {"Entity Components"}},
+                    {gaunlet::Editor::DockSpacePosition::Down, 0.7f, 0, {"Tools Manager"}},
+                    {gaunlet::Editor::DockSpacePosition::Down, 0.2f, 0, {"Workspace Properties"}},
                     {gaunlet::Editor::DockSpacePosition::Center, 0.0f,  {"Scene"}, ImGuiDockNodeFlags_NoTabBar}
                 }, viewportWidth, viewportHeight
             });
 
             // Push the GUI panels
+            m_workspace->pushPanel("workspace-properties", new gaunlet::Prefab::GuiPanels::WorkspacePropertiesPanel, "Workspace Properties");
             m_workspace->pushPanel("render-panel", new gaunlet::Prefab::GuiPanels::RenderPanelComponentsPanel, "Render Panel");
             m_workspace->pushPanel("entity-components", new terramorph::Core::EntityComponentsPanel, "Entity Components");
             m_workspace->pushPanel("tools", new gaunlet::Prefab::GuiPanels::ToolsManagerPanel, "Tools Manager");
@@ -86,11 +89,12 @@ namespace terramorph {
 
         void prepareTools() {
 
-            auto stampDeformationTool = gaunlet::Core::CreateRef<Core::StampDeformationTool>(5.0f);
+            auto stampDeformationTool = gaunlet::Core::CreateRef<Core::StampDeformationTool>(0.05f);
             stampDeformationTool->addBrush("radial-elevation", gaunlet::Core::CreateRef<Sculpting::ProceduralRadialStamp>());
             stampDeformationTool->activateBrush("radial-elevation");
 
             m_workspace->addTool("fp-camera-controller", gaunlet::Core::CreateRef<gaunlet::Prefab::EditorTools::FirstPersonCameraController>("main", 20.0f, 0.5f));
+            m_workspace->addTool("orbital-camera-controller", gaunlet::Core::CreateRef<Core::OrbitalCameraController>("main"));
             m_workspace->addTool("transformer", gaunlet::Core::CreateRef<gaunlet::Prefab::EditorTools::TransformerTool>());
             m_workspace->addTool("stamp-deformation", stampDeformationTool);
             m_workspace->activateTool("stamp-deformation");
@@ -106,8 +110,9 @@ namespace terramorph {
             // Scene components
             auto mainCamera = gaunlet::Core::CreateRef<gaunlet::Scene::PerspectiveCamera>(45.0f, (float) viewportWidth / (float) viewportHeight, 1.0f, -100000.0f);
             m_workspace->addCamera("main", mainCamera);
-            mainCamera->setPosition({0.0f, 40.0f, 40.0f});
-            mainCamera->setRotation(-90.0f, -50.0f);
+            mainCamera->setPosition({0.0f, 0.0f, 150.0f});
+//            mainCamera->lookAt({0, 0, 0});
+//            mainCamera->setRotation(-85.0f, -14.0f);
 
             m_workspace->addScene("main", gaunlet::Core::CreateRef<gaunlet::Scene::Scene>());
 
@@ -115,11 +120,17 @@ namespace terramorph {
             auto& mainScene = m_workspace->getScene("main");
 
             auto terrain = mainScene->createTaggedEntity<gaunlet::Editor::SceneEntityTag>("terrain");
+            terrain.addComponent<Core::PlanetComponent>(
+                50.0f, // Radius
+                1.0f, // Triangle Size
+                7.0f, 0.5f, // Resolution,
+                90.0f, // Coverage
+                mainCamera
+            );
             terrain.addComponent<Core::TerrainComponent>(
-                100.0f, 40.0f, 10.0f, // Dimensions
-                1.0f, 25.0f, // Resolution
-                mainCamera,
-                5.0f, 0.5f // Quad subdivision
+                50.0f, 40.0f, 20.0f, // Dimensions
+                1.0f, // Resolution
+                mainCamera
             );
 
             m_workspace->selectSceneEntity(terrain);

@@ -2,9 +2,13 @@ add_executable(terramorph
         terramorph/main.cpp
 
         # graphics
-        terramorph/core/graphics/procedural-plane/ProceduralPlane.cpp
+        terramorph/core/compute/quad-tree/QuadTree.cpp
+        terramorph/core/graphics/components/PlanetComponent.cpp
+        terramorph/core/graphics/components/TerrainComponent.cpp
         terramorph/core/graphics/render-pipeline/TerrainRenderPipeline.cpp
-        terramorph/core/graphics/terrain-components/TerrainComponent.cpp
+
+        # tools
+        terramorph/core/tools/orbital-camera-controller/OrbitalCameraController.cpp
 )
 
 # Libraries

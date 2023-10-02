@@ -3,58 +3,12 @@
 #include "gaunlet/scene/renderer/ObjectRenderer.h"
 #include "gaunlet/prefab/object-renderers/model-renderer/ModelRenderer.h"
 #include "gaunlet/graphics/render-pass/SimpleRenderPass.h"
-#include "terramorph/core/graphics/terrain-components/TerrainComponent.h"
-#include "terramorph/core/graphics/terrain-components/StampComponent.h"
 #include "gaunlet/scene/camera/Camera.h"
+#include "terramorph/core/graphics/renderer/Properties.h"
 
 #include "gaunlet/pch.h"
 
 namespace terramorph::Core {
-
-    struct QuadProperties {
-
-        QuadProperties() = default;
-
-        unsigned int m_quadPosition;
-        float m_leftSizeFactor;
-        float m_bottomSizeFactor;
-        float m_rightSizeFactor;
-        float m_topSizeFactor;
-        unsigned int m_textureIndex; // For compatibility with the batch renderer
-        glm::vec2 m_pad2;
-
-    };
-
-    struct CameraFrustumPlane {
-        glm::vec3 m_normal;
-        float distance;
-    };
-
-    struct CameraFrustum {
-
-        CameraFrustumPlane m_nearPlane;
-        CameraFrustumPlane m_farPlane;
-        CameraFrustumPlane m_leftPlane;
-        CameraFrustumPlane m_rightPlane;
-        CameraFrustumPlane m_bottomPlane;
-        CameraFrustumPlane m_topPlane;
-
-    };
-
-    struct TerrainProperties {
-
-        CameraFrustum m_cameraFrustum;
-        float m_terrainWidth;
-        float m_terrainDepth;
-        float m_maxHeight;
-        float m_triangleSize;
-        float m_heightmapResolution;
-        int m_entityId;
-        glm::vec2 m_stampUvOrigin = {0, 0};
-        float m_stampUvWidth = 0;
-        float m_stampUvHeight = 0;
-
-    };
 
     class TerrainRenderer {
 
@@ -70,7 +24,7 @@ namespace terramorph::Core {
                 sizeof (QuadProperties) * m_renderer.getBatchParameters().m_maxPropertySets
             );
 
-            // Create a uniform buffer that will contain the information about the camera's frustum
+            // Create a uniform buffer that will contain the information about the terrain
             m_terrainPropertiesUniformBuffer = gaunlet::Core::CreateRef<gaunlet::Graphics::UniformBuffer>(
                 "TerrainProperties",
                 terrainPropertiesUniformBufferBindingPoint,
@@ -82,10 +36,13 @@ namespace terramorph::Core {
 
         void render(gaunlet::Scene::Entity entity, const gaunlet::Core::Ref<gaunlet::Graphics::Shader>& shader) {
 
+            auto& planetComponent = entity.getComponent<PlanetComponent>();
+            auto content = planetComponent.getContent();
+
             auto& terrainComponent = entity.getComponent<TerrainComponent>();
             terrainComponent.getHeightmap()->activate(1);
 
-            auto terrainProperties = getTerrainProperties(terrainComponent);
+            TerrainProperties terrainProperties(planetComponent, terrainComponent);
             terrainProperties.m_entityId = entity.getId();
 
             // If there is a stamp, take the information about it, and activate its texture
@@ -93,9 +50,9 @@ namespace terramorph::Core {
 
                 auto& stampComponent = entity.getComponent<StampComponent>();
 
-                terrainProperties.m_stampUvOrigin = terrainComponent.worldLocation2UVCoordinates({stampComponent.m_origin.x, stampComponent.m_origin.y});
-                terrainProperties.m_stampUvWidth = stampComponent.m_width / terrainComponent.getMeshWidth();
-                terrainProperties.m_stampUvHeight = stampComponent.m_height / terrainComponent.getMeshDepth();
+                terrainProperties.m_stampUvOrigin = stampComponent.m_origin;
+                terrainProperties.m_stampUvWidth = stampComponent.m_width;
+                terrainProperties.m_stampUvHeight = stampComponent.m_height;
                 stampComponent.m_stampTexture->activate(2);
             }
 
@@ -104,15 +61,15 @@ namespace terramorph::Core {
                 sizeof(TerrainProperties)
             );
 
-            for (auto& quad : terrainComponent.getMeshContent()) {
+            for (auto& quad : content) {
 
-                auto planeQuadEntityProperties = getQuadProperties(quad);
+                QuadProperties quadProperties(quad);
 
                 bool batched = m_renderer.submitIndexedTriangles(
                     quad.m_vertices,
                     quad.m_indices,
                     nullptr,
-                    planeQuadEntityProperties
+                    quadProperties
                 );
 
                 if (!batched) {
@@ -121,7 +78,7 @@ namespace terramorph::Core {
                         quad.m_vertices,
                         quad.m_indices,
                         nullptr,
-                        planeQuadEntityProperties
+                        quadProperties
                     );
                 }
 
@@ -136,44 +93,6 @@ namespace terramorph::Core {
         inline gaunlet::Graphics::ShaderLibrary& getShaders() {return m_shaderLibrary; }
 
     protected:
-
-        TerrainProperties getTerrainProperties(TerrainComponent& terrainComponent) {
-
-            gaunlet::Scene::Frustum originalFrustum = terrainComponent.getCamera()->getFrustum();
-            CameraFrustum cameraFrustum{
-                {originalFrustum.m_nearPlane.m_normal, originalFrustum.m_nearPlane.m_distance},
-                {originalFrustum.m_farPlane.m_normal, originalFrustum.m_farPlane.m_distance},
-                {originalFrustum.m_leftPlane.m_normal, originalFrustum.m_leftPlane.m_distance},
-                {originalFrustum.m_rightPlane.m_normal, originalFrustum.m_rightPlane.m_distance},
-                {originalFrustum.m_bottomPlane.m_normal, originalFrustum.m_bottomPlane.m_distance},
-                {originalFrustum.m_topPlane.m_normal, originalFrustum.m_topPlane.m_distance},
-            };
-
-            TerrainProperties terrainProperties{
-                cameraFrustum,
-                terrainComponent.getMeshWidth(),
-                terrainComponent.getMeshDepth(),
-                terrainComponent.m_maxHeight,
-                terrainComponent.m_triangleSize,
-                (float) terrainComponent.getHeightmapResolution()
-            };
-
-            return terrainProperties;
-
-
-        }
-
-        QuadProperties getQuadProperties(PlaneQuad& quad) {
-
-            return {
-                quad.m_position,
-                quad.m_leftSizeRatio,
-                quad.m_bottomSizeRatio,
-                quad.m_rightSizeRatio,
-                quad.m_topSizeRatio
-            };
-
-        }
 
         void renderObjects(const gaunlet::Core::Ref<gaunlet::Graphics::Shader>& shader) {
 

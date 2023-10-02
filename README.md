@@ -1,0 +1,27 @@
+- todo
+  - spherification
+    - dynamic quad resolution
+    - fix terrain deformation
+  - core
+    - tilled sphere
+  - tools
+    - mouse pick plane location
+    - land cover
+    - hydraulic erosion
+    - fractal noise
+  - gis integration
+    - download texture
+    - save/load geotiff
+      - ellipsoid
+      - horizontal datum
+      - projection
+
+- main entity
+  - planet component
+    - input
+      - radius, latitude and longitude coverage
+      - target resolution, resolution slope
+      - camera position, and axises
+    - quad tree patches
+      - spherification
+      - quad (vertices, indices, size ratios)

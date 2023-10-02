@@ -1,16 +1,15 @@
 #pragma once
 
-#include "gaunlet/graphics/Vertex.h"
-#include "gaunlet/scene/camera/Frustum.h"
+#include <utility>
 
-#include "gaunlet/pch.h"
+#include "terramorph/pch.h"
 
 namespace terramorph::Core {
 
     class QuadTreePatch;
 
     // This is the information that is ultimately sent to be rendered
-    struct PlaneQuad {
+    struct Quad {
 
         std::vector<gaunlet::Graphics::Vertex> m_vertices;
         std::vector<unsigned int> m_indices;
@@ -23,55 +22,52 @@ namespace terramorph::Core {
 
     };
 
-    // This is just a collection of data that is passed around
-    struct Context {
-
-        Context(float planeWidth, float planeHeight, float targetResolution, float resolutionSlope, const glm::vec3& cameraPosition, const gaunlet::Scene::Frustum& cameraFrustum)
-            : m_planeWidth(planeWidth), m_planeHeight(planeHeight), m_targetResolution(targetResolution), m_resolutionSlope(resolutionSlope), m_cameraPosition(cameraPosition), m_cameraFrustum(cameraFrustum) {}
-
-        float m_planeWidth;
-        float m_planeHeight;
-        float m_targetResolution;
-        float m_resolutionSlope;
-        glm::vec3 m_cameraPosition;
-        gaunlet::Scene::Frustum m_cameraFrustum;
-        std::vector<PlaneQuad> m_quads;
-
-    };
-
-    enum class PatchPosition {
-        LeftBottom = 0, RightBottom = 1,
-        RightTop = 2, LeftTop = 3,
-        Root = 4
-    };
-
-    enum class HorizontalSide {
-        Left, Right
-    };
-
-    enum class VerticalSide {
-        Bottom, Top
-    };
-
-    // This is square in the plane, which can either be subdivided into more squares, or be drawn
     class QuadTreePatch : public std::enable_shared_from_this<QuadTreePatch> {
+
+        using VertexFunctor = std::function<gaunlet::Graphics::Vertex(float, float)>;
+        using SubdivisionFunctor = std::function<bool(float, float, float, float)>;
+
+    private:
+
+        // This is just a collection of data that is passed around
+        struct Context {
+
+            Context(SubdivisionFunctor subdivisionFunctor, VertexFunctor vertexFunctor)
+                : m_subdivisionFunctor(std::move(subdivisionFunctor)), m_vertexFunctor(std::move(vertexFunctor)) {}
+
+            std::vector<Quad> m_quads;
+            SubdivisionFunctor m_subdivisionFunctor;
+            VertexFunctor m_vertexFunctor;
+
+        };
+
+        enum class PatchPosition {
+            LeftBottom = 0, RightBottom = 1,
+            RightTop = 2, LeftTop = 3,
+            Root = 4
+        };
+
+        enum class HorizontalSide {
+            Left, Right
+        };
+
+        enum class VerticalSide {
+            Bottom, Top
+        };
 
     public:
 
-        QuadTreePatch(QuadTreePatch* parent, PatchPosition position, Context& context, glm::vec3 origin, float width, float height)
-            : m_parent(parent), m_position(position), m_context(context), m_origin(origin), m_width(width), m_height(height) {
-            computeDimensions();
-        }
+        static std::vector<Quad> compute(SubdivisionFunctor subdivisionFunctor, VertexFunctor vertexFunctor);
 
-        static std::vector<PlaneQuad> compute(float planeWidth, float planeHeight, float targetResolution, float resolutionSlope, const glm::vec3& cameraPosition, const gaunlet::Scene::Frustum& cameraFrustum);
+        QuadTreePatch(QuadTreePatch* parent, PatchPosition position, Context& context, glm::vec2 origin, float width, float height);
 
-    protected:
+    private:
 
         QuadTreePatch* m_parent = nullptr;
         PatchPosition m_position;
         Context& m_context;
         std::vector<gaunlet::Core::Ref<QuadTreePatch>> m_children = {};
-        glm::vec3 m_origin;
+        glm::vec2 m_origin;
         float m_width;
         float m_height;
         float m_leftEdge;
@@ -87,11 +83,9 @@ namespace terramorph::Core {
 
         void subdivide();
 
-        float getRelativeResolution(float distance) const;
-
         void createContent();
 
-        void processEdges(PlaneQuad& quad);
+        void processEdges(Quad& quad);
 
         HorizontalSide getHorizontalSide();
 

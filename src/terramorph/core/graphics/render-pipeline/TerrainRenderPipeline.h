@@ -32,7 +32,7 @@ namespace terramorph::Core {
         void drawUI(const gaunlet::Core::Ref<gaunlet::Scene::Scene>& scene);
         void drawSkybox(const gaunlet::Core::Ref<gaunlet::Scene::SkyboxComponent>& skybox);
 
-        virtual void submitScenePlanes(const gaunlet::Core::Ref<gaunlet::Scene::Scene>& scene);
+        virtual void submitSceneTerrains(const gaunlet::Core::Ref<gaunlet::Scene::Scene>& scene);
         virtual void renderSkybox(const gaunlet::Core::Ref<gaunlet::Scene::SkyboxComponent>& skybox);
 
     protected:

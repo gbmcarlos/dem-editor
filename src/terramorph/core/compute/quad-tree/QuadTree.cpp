@@ -1,14 +1,20 @@
-#include "terramorph/core/graphics/procedural-plane/ProceduralPlane.h"
+#include "terramorph/core/compute/quad-tree/QuadTree.h"
+
+#include <utility>
 
 namespace terramorph::Core {
 
-    std::vector<PlaneQuad> QuadTreePatch::compute(float planeWidth, float planeHeight, float targetResolution, float resolutionSlope, const glm::vec3& cameraPosition, const gaunlet::Scene::Frustum& cameraFrustum) {
+    std::vector<Quad>QuadTreePatch::compute(SubdivisionFunctor subdivisionFunctor, VertexFunctor vertexFunctor) {
 
-        Context context(planeWidth, planeHeight, targetResolution, resolutionSlope, cameraPosition, cameraFrustum);
+        Context context(std::move(subdivisionFunctor), std::move(vertexFunctor));
 
-        auto rootNode = gaunlet::Core::CreateRef<QuadTreePatch>(nullptr, PatchPosition::Root, context, glm::vec3(0, 0, 0), planeWidth, planeHeight);
+        // Create a root patch
+        auto rootNode = gaunlet::Core::CreateRef<QuadTreePatch>(nullptr, PatchPosition::Root, context, glm::vec3(0, 0, 0), 2.0f, 2.0f);
+
+        // Process the patch, recursively subdividing, and creating the quads
         rootNode->process();
 
+        // Re-process each quad, finding its size ratios with its neighbours
         for (auto& quad : context.m_quads) {
             quad.m_patch->processEdges(quad);
         }
@@ -17,12 +23,17 @@ namespace terramorph::Core {
 
     }
 
+    QuadTreePatch::QuadTreePatch(QuadTreePatch* parent, PatchPosition position, Context &context, glm::vec2 origin, float width, float height)
+        : m_parent(parent), m_position(position), m_context(context), m_origin(origin), m_width(width), m_height(height) {
+        computeDimensions();
+    }
+
     void QuadTreePatch::computeDimensions() {
 
-        m_leftEdge = m_origin.x - (m_width / 2);
-        m_rightEdge = m_origin.x + (m_width / 2);
-        m_bottomEdge = m_origin.z + (m_height / 2); // Positive, because this is the Z axis
-        m_topEdge = m_origin.z - (m_height / 2); // Negative, because this is the Z axis
+        m_leftEdge = m_origin.x - (m_width / 2.0f);
+        m_rightEdge = m_origin.x + (m_width / 2.0f);
+        m_bottomEdge = m_origin.y - (m_height / 2.0f);
+        m_topEdge = m_origin.y + (m_height / 2.0f);
 
     }
 
@@ -39,55 +50,35 @@ namespace terramorph::Core {
 
     bool QuadTreePatch::requiresSubdivision() {
 
-        glm::vec3 projectedCameraPosition(m_context.m_cameraPosition.x, 0, m_context.m_cameraPosition.z + 1.0);
+        float leftU = (m_leftEdge + 1.0f) / 2.0f;
+        float rightU = (m_rightEdge + 1.0f) / 2.0f;
+        float bottomV = (m_bottomEdge + 1.0f) / 2.0f;
+        float topV = (m_topEdge + 1.0f) / 2.0f;
 
-        // Calculate the position of the 4 corners of the quad
-        glm::vec3 leftBottomCorner = {m_leftEdge, 0, m_bottomEdge};
-        glm::vec3 rightBottomCorner = {m_rightEdge, 0, m_bottomEdge};
-        glm::vec3 rightTopCorner = {m_rightEdge, 0, m_topEdge};
-        glm::vec3 leftTopCorner = {m_leftEdge, 0, m_topEdge};
-
-        // The distance between the camera and each corner of the quad
-        float distanceLeftBottom = glm::length(leftBottomCorner - projectedCameraPosition);
-        float distanceRightBottom = glm::length(rightBottomCorner - projectedCameraPosition);
-        float distanceRightTop = glm::length(rightTopCorner - projectedCameraPosition);
-        float distanceLeftTop = glm::length(leftTopCorner - projectedCameraPosition);
-
-        // The distance to the closest corner
-        float distance = std::min(std::min(distanceLeftBottom, distanceRightBottom), std::min(distanceRightTop, distanceLeftTop));
-
-        // Calculate the required resolution based on the distance to the camera
-        float relativeResolution = getRelativeResolution(distance);
-
-        return m_width > relativeResolution || m_height > relativeResolution;
+        return m_context.m_subdivisionFunctor(
+            leftU,
+            rightU,
+            bottomV,
+            topV
+        );
 
     }
 
-    float QuadTreePatch::getRelativeResolution(float distance) const {
-
-        float relativeResolution = (distance * m_context.m_resolutionSlope) + 1;
-        relativeResolution = std::max(relativeResolution, m_context.m_targetResolution);
-
-        return relativeResolution;
-
-    }
-
-    // Add 4 children to the node, each half the size
     void QuadTreePatch::subdivide() {
 
-        auto leftBottomPatch = gaunlet::Core::CreateRef<QuadTreePatch>(this, PatchPosition::LeftBottom, m_context, glm::vec3(m_origin.x - (m_width/4), 0, m_origin.z + (m_height/4)), m_width/2, m_height/2);
+        auto leftBottomPatch = gaunlet::Core::CreateRef<QuadTreePatch>(this, PatchPosition::LeftBottom, m_context, glm::vec2(m_origin.x - (m_width/4), m_origin.y - (m_height/4)), m_width/2, m_height/2);
         m_children.emplace_back(leftBottomPatch);
         leftBottomPatch->process();
 
-        auto rightBottomPatch = gaunlet::Core::CreateRef<QuadTreePatch>(this, PatchPosition::RightBottom, m_context, glm::vec3(m_origin.x + (m_width/4), 0, m_origin.z + (m_height/4)), m_width/2, m_height/2);
+        auto rightBottomPatch = gaunlet::Core::CreateRef<QuadTreePatch>(this, PatchPosition::RightBottom, m_context, glm::vec2(m_origin.x + (m_width/4), m_origin.y - (m_height/4)), m_width/2, m_height/2);
         m_children.emplace_back(rightBottomPatch);
         rightBottomPatch->process();
 
-        auto rightTopPatch = gaunlet::Core::CreateRef<QuadTreePatch>(this, PatchPosition::RightTop, m_context, glm::vec3(m_origin.x + (m_width/4), 0, m_origin.z - (m_height/4)), m_width/2, m_height/2);
+        auto rightTopPatch = gaunlet::Core::CreateRef<QuadTreePatch>(this, PatchPosition::RightTop, m_context, glm::vec2(m_origin.x + (m_width/4), m_origin.y + (m_height/4)), m_width/2, m_height/2);
         m_children.emplace_back(rightTopPatch);
         rightTopPatch->process();
 
-        auto leftTopPatch = gaunlet::Core::CreateRef<QuadTreePatch>(this, PatchPosition::LeftTop, m_context, glm::vec3(m_origin.x - (m_width/4), 0, m_origin.z - (m_height/4)), m_width/2, m_height/2);
+        auto leftTopPatch = gaunlet::Core::CreateRef<QuadTreePatch>(this, PatchPosition::LeftTop, m_context, glm::vec2(m_origin.x - (m_width/4), m_origin.y + (m_height/4)), m_width/2, m_height/2);
         m_children.emplace_back(leftTopPatch);
         leftTopPatch->process();
 
@@ -95,20 +86,12 @@ namespace terramorph::Core {
 
     void QuadTreePatch::createContent() {
 
-        float planeLeft = -m_context.m_planeWidth / 2;
-        float planeBottom = m_context.m_planeHeight / 2; // Positive, because this is the Z axis
-
-        float patchUVLeft = planeLeft == m_leftEdge ? 0 : ((m_leftEdge - planeLeft) / m_context.m_planeWidth); // If the patch is on the left edge of the plane, avoid dividing by 0, U is 0
-        float patchUVRight = (m_rightEdge - planeLeft) / m_context.m_planeWidth;
-        float patchUVBottom = planeBottom == m_bottomEdge ? 0 : -((m_bottomEdge - planeBottom) / m_context.m_planeHeight); // Same as with planeLeft, avoid dividing by 0, V is 0
-        float patchUVTop = -(m_topEdge - planeBottom) / m_context.m_planeHeight;
-
         m_context.m_quads.push_back({
             {
-                {{m_leftEdge, 0, m_bottomEdge, 1}, {0, 1, 0}, {patchUVLeft, patchUVBottom}},
-                {{m_rightEdge, 0, m_bottomEdge, 1}, {0, 1, 0}, {patchUVRight, patchUVBottom}},
-                {{m_rightEdge, 0, m_topEdge, 1}, {0, 1, 0}, {patchUVRight, patchUVTop}},
-                {{m_leftEdge, 0, m_topEdge, 1}, {0, 1, 0}, {patchUVLeft, patchUVTop}}
+                m_context.m_vertexFunctor(m_leftEdge, m_bottomEdge),
+                m_context.m_vertexFunctor(m_rightEdge, m_bottomEdge),
+                m_context.m_vertexFunctor(m_rightEdge, m_topEdge),
+                m_context.m_vertexFunctor(m_leftEdge, m_topEdge)
             },
             {0, 1, 2, 3},
             this,
@@ -117,7 +100,7 @@ namespace terramorph::Core {
 
     }
 
-    void QuadTreePatch::processEdges(PlaneQuad& quad) {
+    void QuadTreePatch::processEdges(Quad &quad) {
 
         auto leftNeighbour = findHorizontalNeighbour(HorizontalSide::Left);
         if (leftNeighbour != nullptr) {
@@ -144,7 +127,7 @@ namespace terramorph::Core {
     /*
      * To find a neighbour, we first ascend the ancestry tree until we find the common ancestor, recording the position of each node we visit (except the ancestor itself)
      * The common ancestor will be that node that is not on the same side as the edge we're looking for
-     * In the case where we are on the left, and we're looking for the right neighbour, this would mean that we are the common ancestor
+     * In the case where we are on the left (relative to our parent), and we're looking for the right neighbour, this would mean that we are the common ancestor
      * Once we've reached the common ancestor, we descend back down, retracing the steps backward and mirrored (either horizontally or vertically)
      */
     gaunlet::Core::Ref<QuadTreePatch> QuadTreePatch::findHorizontalNeighbour(HorizontalSide side) {
@@ -176,7 +159,6 @@ namespace terramorph::Core {
 
     }
 
-    // Same as findHorizontalNeighbour, but vertically
     gaunlet::Core::Ref<QuadTreePatch> QuadTreePatch::findVerticalNeighbour(VerticalSide side) {
 
         // Discard the root-node case
@@ -207,7 +189,7 @@ namespace terramorph::Core {
     }
 
     // Find the first ancestor that is on the left/right, and return the steps taken (the position of each patch, up until the ancestor, excluded)
-    gaunlet::Core::Ref<QuadTreePatch> QuadTreePatch::findFirstHorizontalSideAncestor(HorizontalSide side, std::vector<PatchPosition>& steps) {
+    gaunlet::Core::Ref<QuadTreePatch> QuadTreePatch::findFirstHorizontalSideAncestor(HorizontalSide side, std::vector<PatchPosition> &steps) {
 
         // The root node isn't a valid side-ancestor, because it has no siblings
         if (m_parent == nullptr) {
@@ -224,7 +206,7 @@ namespace terramorph::Core {
 
     }
 
-    gaunlet::Core::Ref<QuadTreePatch> QuadTreePatch::findFirstVerticalSideAncestor(VerticalSide side, std::vector<PatchPosition>& steps) {
+    gaunlet::Core::Ref<QuadTreePatch>QuadTreePatch::findFirstVerticalSideAncestor(VerticalSide side, std::vector<PatchPosition> &steps) {
 
         // The root node isn't a valid side-ancestor, because it has no siblings
         if (m_parent == nullptr) {
@@ -241,8 +223,7 @@ namespace terramorph::Core {
 
     }
 
-    // Find a descendant by retracing the steps taken to find the common ancestor, but backwards and mirrored
-    gaunlet::Core::Ref<QuadTreePatch> QuadTreePatch::findDescendant(const std::vector<PatchPosition>& steps, bool horizontal) {
+    gaunlet::Core::Ref<QuadTreePatch>QuadTreePatch::findDescendant(const std::vector<PatchPosition> &steps, bool horizontal) {
 
         gaunlet::Core::Ref<QuadTreePatch> descendant = shared_from_this();
 
@@ -277,23 +258,27 @@ namespace terramorph::Core {
         return m_children[static_cast<unsigned int>(position)];
     }
 
-    HorizontalSide QuadTreePatch::getHorizontalSide() {
+    QuadTreePatch::HorizontalSide QuadTreePatch::getHorizontalSide() {
+
         if (m_position == PatchPosition::LeftBottom || m_position == PatchPosition::LeftTop) {
             return HorizontalSide::Left;
         } else {
             return HorizontalSide::Right;
         }
+
     }
 
-    VerticalSide QuadTreePatch::getVerticalSide() {
+    QuadTreePatch::VerticalSide QuadTreePatch::getVerticalSide() {
+
         if (m_position == PatchPosition::LeftBottom || m_position == PatchPosition::RightBottom) {
             return VerticalSide::Bottom;
         } else {
             return VerticalSide::Top;
         }
+
     }
 
-    PatchPosition QuadTreePatch::getHorizontalNeighbourPosition(PatchPosition position) {
+    QuadTreePatch::PatchPosition QuadTreePatch::getHorizontalNeighbourPosition(PatchPosition position) {
 
         switch (position) {
             case PatchPosition::LeftBottom:     return PatchPosition::RightBottom;
@@ -304,7 +289,7 @@ namespace terramorph::Core {
 
     }
 
-    PatchPosition QuadTreePatch::getVerticalNeighbourPosition(PatchPosition position) {
+    QuadTreePatch::PatchPosition QuadTreePatch::getVerticalNeighbourPosition(PatchPosition position) {
 
         switch (position) {
             case PatchPosition::LeftBottom:     return PatchPosition::LeftTop;

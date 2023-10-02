@@ -4,8 +4,9 @@
 #include "gaunlet/prefab/render-pipelines/SceneProperties.h"
 #include "gaunlet/editor/Tags.h"
 #include "gaunlet/prefab/render-pipeline-extensions/EntitySelectionExtension.h"
-#include "terramorph/core/graphics/render-pipeline/extensions/TerrainLocationExtension.h"
-#include "terramorph/core/graphics/terrain-components/TerrainComponent.h"
+#include "terramorph/core/graphics/render-pipeline/extensions/PlanetLocationExtension.h"
+#include "terramorph/core/graphics/components/PlanetComponent.h"
+#include "terramorph/core/graphics/components/TerrainComponent.h"
 
 namespace terramorph::Core {
 
@@ -20,7 +21,7 @@ namespace terramorph::Core {
             1, 2
         ));
 
-        addExtension<TerrainLocationExtension>(gaunlet::Core::CreateRef<TerrainLocationExtension>(
+        addExtension<PlanetLocationExtension>(gaunlet::Core::CreateRef<PlanetLocationExtension>(
             m_framebuffer,
             3
         ));
@@ -115,7 +116,7 @@ namespace terramorph::Core {
         );
 
         // Then draw the objects
-        submitScenePlanes(scene);
+        submitSceneTerrains(scene);
 
     }
 
@@ -147,11 +148,11 @@ namespace terramorph::Core {
 
     }
 
-    void TerrainRenderPipeline::submitScenePlanes(const gaunlet::Core::Ref<gaunlet::Scene::Scene> &scene) {
+    void TerrainRenderPipeline::submitSceneTerrains(const gaunlet::Core::Ref<gaunlet::Scene::Scene> &scene) {
 
         auto terrainEntity = scene->getEntity(m_terrainEntityName);
 
-        if (terrainEntity.hasComponent<TerrainComponent>()) {
+        if (terrainEntity.hasComponent<PlanetComponent>() && terrainEntity.hasComponent<TerrainComponent>()) {
 
             auto& shader = m_terrainRenderer.getShaders().get("plane-faces");
 
@@ -227,7 +228,7 @@ namespace terramorph::Core {
 
         // For the terrain location
         m_framebuffer->addColorAttachment<glm::vec3>(
-            gaunlet::Graphics::BaseColorAttachmentSpec::Channels::CHANNELS_3,
+            gaunlet::Graphics::BaseColorAttachmentSpec::Channels::CHANNELS_2,
             gaunlet::Graphics::BaseColorAttachmentSpec::Type::TYPE_UNI,
             gaunlet::Graphics::BaseColorAttachmentSpec::Size::SIZE_16,
             glm::vec3(0.0f, 0.0f, 0.0f)

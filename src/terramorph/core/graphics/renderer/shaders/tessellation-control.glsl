@@ -1,66 +1,15 @@
 #version 410 core
 
+#include "GL_PREFABS_PATH/shaders/includes/scene-properties.glsl"
+#include "entity-properties.glsl"
+#include "terrain-properties.glsl"
+
 layout (vertices = 4) out;
 
-struct EntityPropertySet {
-    uint position;
-    float leftSizeFactor;
-    float bottomSizeFactor;
-    float rightSizeFactor;
-    float topSizeFactor;
-    uint textureIndex;
-};
-
-struct DirectionalLight {
-    vec3 color;
-    float ambientIntensity;
-    vec3 direction;
-    float diffuseIntensity;
-};
-
-// Uniforms
-layout (std140) uniform EntityPropertySets {
-    EntityPropertySet entityPropertySets[100];
-};
-
-layout (std140) uniform SceneProperties {
-    mat4 view;
-    mat4 projection;
-    vec4 viewport;
-    DirectionalLight directionalLight;
-};
-
-struct FrustumPlane {
-    vec3 normal;
-    float distance;
-};
-
-struct CameraFrustum {
-    FrustumPlane nearPlane;
-    FrustumPlane farPlane;
-    FrustumPlane leftPlane;
-    FrustumPlane rightPlane;
-    FrustumPlane bottomPlane;
-    FrustumPlane topPlane;
-};
-
-layout (std140) uniform TerrainProperties {
-    CameraFrustum cameraFrustum;
-    float terrainWidth;
-    float terrainDepth;
-    float maxHeight;
-    float triangleSize;
-    float heightmapResolution;
-    int entityId;
-    vec2 stampUvOrigin;
-    float stampUvWidth;
-    float stampUvHeight;
-};
-
-in vec2 v_textureCoordinates[];
+in vec2 v_planeUV[];
 flat in uint v_entityIndex[];
 
-out vec2 tc_textureCoordinates[];
+out vec2 tc_planeUV[];
 
 // Textures
 uniform sampler2D heightmap;
@@ -82,7 +31,7 @@ bool pointOver(FrustumPlane plane, vec4 point);
 int getTessellationLevel(uint edgeIndex, uint position, float sizeFactor, float triangleSize);
 
 int getLargerEdgeTessellationLevel(uint edgeIndex, uint position, float triangleSize);
-vec4 getExtendedEdgeVertex(vec4 fixedVertex, vec4 vertexToExtend, vec2 fixedTextureCoordinates, vec2 textureCoordinatesToExtend);
+vec4 getExtendedEdgeVertex(vec2 fixedPlaneUV, vec2 planeUVtoExtend);
 float getEdgeTessellationFactor(vec4 edgeStart, vec4 edgeEnd, float triangleSize);
 
 int roundUp(float value);
@@ -92,7 +41,7 @@ vec2 getVertexIndices(uint edgeIndex);
 
 void main() {
 
-    tc_textureCoordinates[gl_InvocationID] = v_textureCoordinates[gl_InvocationID];
+    tc_planeUV[gl_InvocationID] = v_planeUV[gl_InvocationID];
     gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 
     if (gl_InvocationID == 0) {
@@ -102,7 +51,7 @@ void main() {
         vec4 vertexPosition2 = gl_in[2].gl_Position;
         vec4 vertexPosition3 = gl_in[3].gl_Position;
 
-        if (!withinFrustum(vertexPosition0, vertexPosition1, vertexPosition2, vertexPosition3)) {
+        if (!withinFrustum(vertexPosition0 * basisMatrix, vertexPosition1 * basisMatrix, vertexPosition2 * basisMatrix, vertexPosition3 * basisMatrix)) {
             gl_TessLevelOuter[0] = -1;
             gl_TessLevelOuter[1] = -1;
             gl_TessLevelOuter[2] = -1;
@@ -144,7 +93,7 @@ void main() {
 
 int getTessellationLevel(uint edgeIndex, uint position, float sizeFactor, float triangleSize) {
 
-    if (triangleSize <= 4) {
+    if (triangleSize < 1) {
         return 1;
     }
 
@@ -167,7 +116,7 @@ int getTessellationLevel(uint edgeIndex, uint position, float sizeFactor, float 
     }
 
     // A size factor of 0.5f means that the neighbour is smaller, and this quad is bigger
-    // The smaller quad will be adapted to the big one, so we need to make sure the bgi one's is even
+    // The smaller quad will be adapted to the big one, so we need to make sure the big one's is even
     if (sizeFactor == 0.5f) {
         int roundedTessellationLevel = roundUpEven(edgeTessellationFactor);
         return roundedTessellationLevel;
@@ -180,6 +129,8 @@ int getTessellationLevel(uint edgeIndex, uint position, float sizeFactor, float 
         int adaptedTessellationLevel = int(largerEdgeTessellationLevel / 2);
         return adaptedTessellationLevel;
     }
+
+    return 1;
 
 }
 
@@ -200,14 +151,14 @@ int getLargerEdgeTessellationLevel(uint edgeIndex, uint position, float triangle
     vec2 edgeVertexIndices = getVertexIndices(edgeIndex);
     vec4 edgeStart = gl_in[int(edgeVertexIndices.x)].gl_Position;
     vec4 edgeEnd = gl_in[int(edgeVertexIndices.y)].gl_Position;
-    vec2 edgeStartTextureCoordinates = v_textureCoordinates[int(edgeVertexIndices.x)];
-    vec2 edgeEndTextureCoordinates = v_textureCoordinates[int(edgeVertexIndices.y)];
+    vec2 edgeStartUV = v_planeUV[int(edgeVertexIndices.x)];
+    vec2 edgeEndUV = v_planeUV[int(edgeVertexIndices.y)];
 
     if (extendForward) {
-        vec4 extendedEdgeEnd = getExtendedEdgeVertex(edgeStart, edgeEnd, edgeStartTextureCoordinates, edgeEndTextureCoordinates);
+        vec4 extendedEdgeEnd = getExtendedEdgeVertex(edgeStartUV, edgeEndUV);
         edgeTessellationFactor = getEdgeTessellationFactor(edgeStart, extendedEdgeEnd, triangleSize);
     } else {
-        vec4 extendedEdgeStart = getExtendedEdgeVertex(edgeEnd, edgeStart, edgeEndTextureCoordinates, edgeStartTextureCoordinates);
+        vec4 extendedEdgeStart = getExtendedEdgeVertex(edgeEndUV, edgeStartUV);
         edgeTessellationFactor = getEdgeTessellationFactor(extendedEdgeStart, edgeEnd, triangleSize);
     }
 
@@ -221,28 +172,89 @@ int getLargerEdgeTessellationLevel(uint edgeIndex, uint position, float triangle
 
 }
 
-vec4 getExtendedEdgeVertex(vec4 fixedVertex, vec4 vertexToExtend, vec2 fixedTextureCoordinates, vec2 textureCoordinatesToExtend) {
+vec4 getExtendedEdgeVertex(vec2 fixedPlaneUV, vec2 planeUVtoExtend) {
 
-    vec4 extendedVertex = vertexToExtend + (vertexToExtend - fixedVertex);
+    vec2 extendedPlaneUV = planeUVtoExtend + (planeUVtoExtend - fixedPlaneUV);
+    vec4 spherePoint = planeUV2spherePoint(extendedPlaneUV);
+    vec4 extendedVertex = spherePoint * radius;
 
-    // Simulate the height of the extended vertex
-    vec2 extendedTextureCoordinates = textureCoordinatesToExtend + (textureCoordinatesToExtend - fixedTextureCoordinates);
-    float height = texture(heightmap, extendedTextureCoordinates).x * maxHeight;
-    extendedVertex.y = height;
+//    vec2 sphereUV = planeUV2sphereUV(extendedPlaneUV);
+//    float height = texture(heightmap, sphereUV).x * maxHeight;
+//    extendedVertex += normalize(spherePoint) * height;
 
     return extendedVertex;
 
 }
 
+// https://xeolabs.com/pdfs/OpenGLInsights.pdf
 float getEdgeTessellationFactor(vec4 edgeStart, vec4 edgeEnd, float triangleSize) {
 
-    float viewportHeight = viewport.w - viewport.y;
-    float sphereDiameter = distance(edgeStart, edgeEnd);
-    vec4 sphereCenter = (edgeStart + edgeEnd) / 2;
-    vec4 clipCenter = projection * view * sphereCenter;
-    float clipDiameter = abs((sphereDiameter * float(projection[0, 0])) / clipCenter.w);
+    vec2 viewportDimensions = vec2(viewport.z - viewport.x, viewport.w - viewport.y);
+    vec4 viewCenter = vec4(0, 0, 0, 1);
 
-    return max(clipDiameter * (viewportHeight / triangleSize), 1.0f);
+    vec4 p1 = (edgeStart + edgeEnd) / 2;
+    vec4 p2 = viewCenter;
+    p2.y += distance(edgeStart, edgeEnd);
+
+    p1 = projection * view * p1;
+    p2 = projection * view * p2;
+    p1 /= p1.w;
+    p2 /= p2.w;
+
+    float l = length((p1.xy - p2.xy) * viewportDimensions * 0.5);
+    return clamp(l / triangleSize, 1, 64);
+
+}
+
+// https://gitee.com/T_D/Vulkan/blob/master/data/shaders/terraintessellation/terrain.tesc
+float __getEdgeTessellationFactor(vec4 edgeStart, vec4 edgeEnd, float triangleSize) {
+
+    // Calculate edge mid point
+    vec4 midPoint = 0.5 * (edgeStart + edgeEnd);
+    // Sphere radius as distance between the control points
+    float radius = distance(edgeStart, edgeEnd) / 2.0;
+
+    // View space
+    vec4 v0 = view * midPoint;
+
+    // Project into clip space
+    vec4 clip0 = (projection * (v0 - vec4(radius, vec3(0.0))));
+    vec4 clip1 = (projection * (v0 + vec4(radius, vec3(0.0))));
+
+    // Get normalized device coordinates
+    clip0 /= clip0.w;
+    clip1 /= clip1.w;
+
+    // Convert to viewport coordinates
+    vec2 viewportDimensions = vec2(viewport.z - viewport.x, viewport.w - viewport.y);
+    clip0.xy *= viewportDimensions;
+    clip1.xy *= viewportDimensions;
+
+    // Return the tessellation factor based on the screen size
+    // given by the distance of the two edge control points in screen space
+    // and a reference (min.) tessellation size for the edge set by the application
+    return clamp(distance(clip0, clip1) / triangleSize, 1.0, 64.0);
+
+}
+
+// https://github.com/GPUOpen-LibrariesAndSDKs/Tessellation/blob/master/sample/data/tess.cont
+float _getEdgeTessellationFactor(vec4 edgeStart, vec4 edgeEnd, float triangleSize) {
+
+    vec3 sphereCenter = (edgeStart.xyz + edgeEnd.xyz) * 0.5f;
+    vec4 viewSphereCenter = view * vec4(sphereCenter, 1.0);
+    vec4 viewOrigin = view * vec4(0, 0, 0, 1.0);
+    float cameraDistFromSphereCenter = length(viewSphereCenter.xyz);
+    float cameraDistFromOrigin = length(viewOrigin.xyz);
+
+    vec4 clipEdgeStart = projection * view * vec4(edgeStart.xyz, 1.0);
+    vec4 clipEdgeEnd = projection * view * vec4(edgeEnd.xyz, 1.0);
+    float clipSphereDiameter = distance(clipEdgeStart, clipEdgeEnd);
+
+    float viewportHeight = viewport.w - viewport.y;
+    float screenSphereDiameter = clipSphereDiameter * viewportHeight;
+
+    float factor = (screenSphereDiameter) / triangleSize;
+    return factor;
 
 }
 

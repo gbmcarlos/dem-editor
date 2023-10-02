@@ -1,7 +1,6 @@
 #pragma once
 
 #include "gaunlet/scene/camera/PerspectiveCamera.h"
-#include "terramorph/core/graphics/procedural-plane/ProceduralPlane.h"
 #include "gaunlet/graphics/shader/Shader.h"
 #include "gaunlet/graphics/texture/Texture.h"
 #include "gaunlet/graphics/framebuffer/Framebuffer.h"
@@ -12,9 +11,7 @@ namespace terramorph::Core {
 
     public:
 
-        TerrainComponent(float meshWidth, float meshDepth, float maxHeight, float heightmapResolution, float triangleSize, gaunlet::Core::Ref<gaunlet::Scene::PerspectiveCamera> camera, float quadTargetResolution, float quadResolutionSlope);
-
-        std::vector<PlaneQuad> getMeshContent();
+        TerrainComponent(float meshWidth, float meshDepth, float maxHeight, float heightmapResolution, gaunlet::Core::Ref<gaunlet::Scene::PerspectiveCamera> camera);
 
         float getHeightmapResolution();
         float getMeshWidth();
@@ -40,9 +37,6 @@ namespace terramorph::Core {
         float worldDepth2UVCoordinates(float depth) const;
 
         float m_maxHeight;
-        float m_triangleSize;
-        float m_targetQuadResolution;
-        float m_quadResolutionSlope;
 
     private:
 
